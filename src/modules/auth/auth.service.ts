@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db/prisma";
 import { authConfig } from "@/config/auth";
+import { BadRequestError, NotFoundError } from "@/lib/errors";
 
 const encoder = new TextEncoder();
 
@@ -99,10 +100,10 @@ export async function changePassword(
     where: { id: userId },
     select: { passwordHash: true },
   });
-  if (!user) throw new Error("User not found");
+  if (!user) throw new NotFoundError("User");
 
   const valid = await verifyPassword(currentPassword, user.passwordHash);
-  if (!valid) throw new Error("Current password is incorrect");
+  if (!valid) throw new BadRequestError("Current password is incorrect");
 
   const newHash = await hashPassword(newPassword);
   await db.user.update({
