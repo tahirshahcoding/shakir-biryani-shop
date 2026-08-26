@@ -54,7 +54,7 @@ export async function findById(id: string) {
   return db.sale.findUnique({
     where: { id },
     include: {
-      items: { include: { product: { select: { id: true, name: true } } } },
+      items: { select: { id: true, productId: true, productName: true, quantity: true, unitPrice: true, subtotal: true } },
       createdBy: { select: { id: true, name: true } },
       payment: { select: { amount: true, method: true } },
     },

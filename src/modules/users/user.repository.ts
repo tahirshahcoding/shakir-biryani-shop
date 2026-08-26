@@ -104,10 +104,21 @@ export async function remove(id: string) {
 export async function findByEmailWithRole(email: string) {
   return db.user.findUnique({
     where: { email },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      passwordHash: true,
+      isActive: true,
       role: {
-        include: {
-          permissions: { include: { permission: true } },
+        select: {
+          id: true,
+          name: true,
+          permissions: {
+            select: {
+              permission: { select: { code: true } },
+            },
+          },
         },
       },
     },

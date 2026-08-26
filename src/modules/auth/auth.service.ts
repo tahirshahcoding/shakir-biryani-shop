@@ -90,6 +90,27 @@ export async function loginUser(email: string, password: string) {
   return { token, user: sessionPayload };
 }
 
+export async function changePassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+  if (!user) throw new Error("User not found");
+
+  const valid = await verifyPassword(currentPassword, user.passwordHash);
+  if (!valid) throw new Error("Current password is incorrect");
+
+  const newHash = await hashPassword(newPassword);
+  await db.user.update({
+    where: { id: userId },
+    data: { passwordHash: newHash },
+  });
+}
+
 export async function requireAuth() {
   const session = await getSession();
   if (!session) {

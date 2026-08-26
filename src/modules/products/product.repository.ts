@@ -26,7 +26,11 @@ export async function findMany(filters: ProductRepositoryFilters = {}) {
   const [items, total] = await Promise.all([
     db.product.findMany({
       where,
-      include: { category: { select: { id: true, name: true } } },
+      select: {
+        id: true, name: true, sellingPrice: true, costPrice: true, unit: true,
+        trackStock: true, isAvailable: true, isActive: true,
+        category: { select: { id: true, name: true } },
+      },
       orderBy: { name: "asc" },
       skip: (page - 1) * pageSize,
       take: pageSize,

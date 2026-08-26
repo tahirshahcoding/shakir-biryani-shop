@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================
@@ -130,6 +131,7 @@ model Sale {
   @@index([status])
   @@index([createdById])
   @@index([paymentMethod])
+  @@index([status, createdAt])
 }
 
 model SaleItem {
@@ -239,6 +241,7 @@ model Expense {
   @@index([expenseDate])
   @@index([categoryId])
   @@index([createdById])
+  @@index([expenseDate, categoryId])
 }
 
 // ============================================================

@@ -10,11 +10,12 @@ import * as inventoryService from "./inventory.service";
 const m = db as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (m as any).$transaction.mockImplementation(async (fn: unknown) => {
     return (fn as (tx: typeof db) => Promise<unknown>)(db);
   });
+  (m as any).$executeRaw.mockResolvedValue(0);
 });
 
 describe("inventory.service integration", () => {

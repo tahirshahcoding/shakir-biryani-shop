@@ -8,10 +8,28 @@ export async function getInventoryItems(filters: InventoryFilters = {}) {
   const { search, isLowStock, isActive, page = 1, pageSize = 25 } = filters;
 
   if (isLowStock) {
-    const allItems = await inventoryRepo.findMany({ search, isActive, isLowStock: false, page: 1, pageSize: 10000 });
-    const filtered = allItems.items.filter((item) => item.currentQuantity <= item.minimumQuantity);
-    const total = filtered.length;
-    const items = filtered.slice((page - 1) * pageSize, page * pageSize);
+    // Raw SQL: filter at DB level instead of fetching 10K rows
+    const whereClauses = ["isActive = 1", "currentQuantity <= minimumQuantity"];
+    const params: unknown[] = [];
+    if (search) {
+      whereClauses.push("name LIKE ?");
+      params.push(`%${search}%`);
+    }
+    const where = whereClauses.join(" AND ");
+    const offset = (page - 1) * pageSize;
+
+    const [items, countResult] = await Promise.all([
+      db.$queryRawUnsafe<{ id: string; name: string; unit: string; currentQuantity: number; minimumQuantity: number }[]>(
+        `SELECT id, name, unit, currentQuantity, minimumQuantity FROM InventoryItem WHERE ${where} ORDER BY name ASC LIMIT ${pageSize} OFFSET ${offset}`,
+        ...params
+      ),
+      db.$queryRawUnsafe<{ cnt: bigint }[]>(
+        `SELECT COUNT(*) as cnt FROM InventoryItem WHERE ${where}`,
+        ...params
+      ),
+    ]);
+
+    const total = Number(countResult[0]?.cnt ?? 0);
     return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
@@ -73,14 +91,11 @@ export async function addStock(
     if (!item) throw new Error("Inventory item not found");
 
     const previousQuantity = Number(item.currentQuantity);
+    const newQuantity = previousQuantity + quantity;
 
-    // Atomic increment — no read-modify-write race condition
     await tx.$executeRaw`
-      UPDATE InventoryItem SET currentQuantity = currentQuantity + ${quantity} WHERE id = ${inventoryItemId}
+      UPDATE InventoryItem SET currentQuantity = ${newQuantity} WHERE id = ${inventoryItemId}
     `;
-
-    const updatedItem = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
-    const newQuantity = Number(updatedItem!.currentQuantity);
 
     const transaction = await tx.inventoryTransaction.create({
       data: { inventoryItemId, type: "STOCK_IN", quantity, previousQuantity, newQuantity, reason, createdById },
@@ -90,7 +105,7 @@ export async function addStock(
       data: { userId: createdById, action: "STOCK_ADDED", entityType: "InventoryItem", entityId: inventoryItemId, metadata: JSON.stringify({ quantity, newQuantity, reason }) },
     });
 
-    return { item: updatedItem, transaction };
+    return { item: { ...item, currentQuantity: newQuantity }, transaction };
   });
 }
 
@@ -107,7 +122,6 @@ export async function adjustStock(
     const previousQuantity = Number(item.currentQuantity);
     const delta = newQuantity - previousQuantity;
 
-    // Atomic set — no read-modify-write race condition
     await tx.$executeRaw`
       UPDATE InventoryItem SET currentQuantity = ${newQuantity} WHERE id = ${inventoryItemId}
     `;
@@ -120,8 +134,7 @@ export async function adjustStock(
       data: { userId: createdById, action: "STOCK_ADJUSTED", entityType: "InventoryItem", entityId: inventoryItemId, metadata: JSON.stringify({ delta, newQuantity, reason }) },
     });
 
-    const updatedItem = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
-    return { item: updatedItem, transaction };
+    return { item: { ...item, currentQuantity: newQuantity }, transaction };
   });
 }
 

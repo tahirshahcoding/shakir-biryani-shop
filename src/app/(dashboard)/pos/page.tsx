@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/format";
 
@@ -53,11 +53,19 @@ export default function POSPage() {
     });
   }, []);
 
-  const filtered = products.filter((p) => {
+  const filtered = useMemo(() => products.filter((p) => {
     if (selectedCategory && p.category.id !== selectedCategory) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  });
+  }), [products, selectedCategory, search]);
+
+  const { subtotal, discountAmount, total, cartCount } = useMemo(() => {
+    const sub = cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const disc = Math.min(discount, sub);
+    const tot = Math.max(0, sub - disc);
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+    return { subtotal: sub, discountAmount: disc, total: tot, cartCount: count };
+  }, [cart, discount]);
 
   function addToCart(product: Product) {
     setCart((prev) => {
@@ -80,11 +88,6 @@ export default function POSPage() {
   function removeFromCart(productId: string) {
     setCart((prev) => prev.filter((item) => item.productId !== productId));
   }
-
-  const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  const discountAmount = Math.min(discount, subtotal);
-  const total = Math.max(0, subtotal - discountAmount);
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   async function handleCheckout() {
     if (cart.length === 0 || submitting) return;

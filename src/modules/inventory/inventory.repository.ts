@@ -55,6 +55,7 @@ export async function update(
 export async function findManyActive() {
   return db.inventoryItem.findMany({
     where: { isActive: true },
+    select: { id: true, name: true, unit: true, currentQuantity: true, minimumQuantity: true },
     orderBy: { name: "asc" },
   });
 }

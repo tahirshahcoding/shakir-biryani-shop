@@ -38,11 +38,9 @@ export const GET = withErrorHandling(async () => {
       where: { sale: { status: "COMPLETED", createdAt: { gte: today, lt: tomorrow } } },
       _sum: { quantity: true, subtotal: true },
     }),
-    db.inventoryItem.findMany({
-      where: { isActive: true },
-      select: { name: true, currentQuantity: true, minimumQuantity: true, unit: true },
-      take: 100,
-    }),
+    db.$queryRawUnsafe<{ name: string; currentQuantity: number; minimumQuantity: number; unit: string }[]>(
+      "SELECT name, currentQuantity, minimumQuantity, unit FROM InventoryItem WHERE isActive = 1 AND currentQuantity <= minimumQuantity ORDER BY currentQuantity ASC LIMIT 10"
+    ),
     db.product.count({ where: { isActive: true } }),
   ]);
 
@@ -59,9 +57,7 @@ export const GET = withErrorHandling(async () => {
     .sort((a, b) => b.totalRevenue - a.totalRevenue)
     .slice(0, 5);
 
-  const lowStock = lowStockItems
-    .filter((i) => Number(i.currentQuantity) <= Number(i.minimumQuantity))
-    .slice(0, 10);
+  const lowStock = lowStockItems;
 
   return NextResponse.json({
     success: true,

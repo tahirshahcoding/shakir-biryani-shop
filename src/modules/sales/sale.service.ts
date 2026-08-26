@@ -110,27 +110,43 @@ export async function voidSale(id: string, voidedById: string) {
     const invItemMap = new Map(invItems.map((i) => [i.id, i]));
     const trackedIds = new Set(trackedProducts.map((p) => p.id));
 
-    for (const item of sale.items) {
-      // Only restore inventory for products that track stock
-      if (!trackedIds.has(item.productId)) continue;
+    // Build inventory restoration data in one pass
+    const invUpdates: { id: string; prev: number; qty: number }[] = [];
+    const txCreates: {
+      inventoryItemId: string;
+      type: string;
+      quantity: number;
+      previousQuantity: number;
+      newQuantity: number;
+      reason: string;
+      createdById: string;
+    }[] = [];
 
+    for (const item of sale.items) {
+      if (!trackedIds.has(item.productId)) continue;
       const invItem = invItemMap.get(item.productId);
-      if (invItem) {
-        const prev = Number(invItem.currentQuantity);
-        const newQty = prev + item.quantity;
-        await tx.inventoryItem.update({ where: { id: invItem.id }, data: { currentQuantity: newQty } });
-        await tx.inventoryTransaction.create({
-          data: {
-            inventoryItemId: invItem.id,
-            type: "RESTOCK",
-            quantity: item.quantity,
-            previousQuantity: prev,
-            newQuantity: newQty,
-            reason: `Void sale ${sale.invoiceNumber}`,
-            createdById: voidedById,
-          },
-        });
-      }
+      if (!invItem) continue;
+      const prev = Number(invItem.currentQuantity);
+      const newQty = prev + item.quantity;
+      invUpdates.push({ id: invItem.id, prev, qty: item.quantity });
+      txCreates.push({
+        inventoryItemId: invItem.id,
+        type: "RESTOCK",
+        quantity: item.quantity,
+        previousQuantity: prev,
+        newQuantity: newQty,
+        reason: `Void sale ${sale.invoiceNumber}`,
+        createdById: voidedById,
+      });
+    }
+
+    // Batch inventory updates: one raw query per item (sqlite doesn't support CASE well)
+    // but batch the transaction log inserts
+    for (const u of invUpdates) {
+      await tx.$executeRaw`UPDATE InventoryItem SET currentQuantity = ${u.prev + u.qty} WHERE id = ${u.id}`;
+    }
+    if (txCreates.length > 0) {
+      await tx.inventoryTransaction.createMany({ data: txCreates });
     }
 
     await tx.sale.update({ where: { id }, data: { status: "VOIDED" } });
