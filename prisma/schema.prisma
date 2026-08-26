@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ============================================================
+// AUTHORIZATION
+// ============================================================
+
+model Role {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String         @id @default(uuid())
+  code        String         @unique
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  roleId       String
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  role                  Role                  @relation(fields: [roleId], references: [id])
+  createdSales          Sale[]
+  createdExpenses       Expense[]
+  inventoryTransactions InventoryTransaction[]
+  auditLogs             AuditLog[]
+
+  @@index([roleId])
+  @@index([isActive])
+}
+
+// ============================================================
+// PRODUCT CATALOG
+// ============================================================
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products Product[]
+
+  @@index([isActive])
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  categoryId   String
+  name         String
+  description  String?
+  sellingPrice Float
+  costPrice    Float?
+  unit         String   @default("piece")
+  trackStock   Boolean  @default(true)
+  isAvailable  Boolean  @default(true)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category  Category   @relation(fields: [categoryId], references: [id])
+  saleItems SaleItem[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([isAvailable])
+}
+
+// ============================================================
+// SALES
+// ============================================================
+
+// Note: SQLite doesn't support enums. SaleStatus stored as String.
+// Valid values: "COMPLETED", "VOIDED"
+
+// Note: SQLite doesn't support enums. PaymentMethod stored as String.
+// Valid values: "CASH", "CARD", "ONLINE", "OTHER"
+
+model Sale {
+  id            String  @id @default(uuid())
+  invoiceNumber String  @unique
+  subtotal      Float
+  discount      Float   @default(0)
+  total         Float
+  status        String  @default("COMPLETED")
+  paymentMethod String  @default("CASH")
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy User       @relation(fields: [createdById], references: [id])
+  items     SaleItem[]
+  payment   Payment?
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([createdById])
+  @@index([paymentMethod])
+}
+
+model SaleItem {
+  id          String  @id @default(uuid())
+  saleId      String
+  productId   String
+  productName String
+  quantity    Int
+  unitPrice   Float
+  subtotal    Float
+  createdAt   DateTime @default(now())
+
+  sale    Sale    @relation(fields: [saleId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  saleId    String   @unique
+  amount    Float
+  method    String   @default("CASH")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sale Sale @relation(fields: [saleId], references: [id])
+}
+
+// ============================================================
+// INVENTORY
+// ============================================================
+
+// Note: SQLite doesn't support enums. InventoryTransactionType stored as String.
+// Valid values: "STOCK_IN", "STOCK_OUT", "ADJUSTMENT", "SALE_USAGE", "RETURN"
+
+model InventoryItem {
+  id              String   @id @default(uuid())
+  name            String
+  unit            String
+  currentQuantity Float    @default(0)
+  minimumQuantity Float    @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions InventoryTransaction[]
+
+  @@index([isActive])
+  @@index([name])
+}
+
+model InventoryTransaction {
+  id               String   @id @default(uuid())
+  inventoryItemId  String
+  type             String
+  quantity         Float
+  previousQuantity Float
+  newQuantity      Float
+  reason           String?
+  referenceType    String?
+  referenceId      String?
+  createdById      String
+  createdAt        DateTime @default(now())
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  createdBy     User          @relation(fields: [createdById], references: [id])
+
+  @@index([inventoryItemId])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([type])
+}
+
+// ============================================================
+// FINANCE
+// ============================================================
+
+model ExpenseCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  expenses Expense[]
+
+  @@index([isActive])
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  categoryId    String
+  amount        Float
+  description   String?
+  paymentMethod String   @default("CASH")
+  expenseDate   DateTime @default(now())
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category  ExpenseCategory @relation(fields: [categoryId], references: [id])
+  createdBy User            @relation(fields: [createdById], references: [id])
+
+  @@index([expenseDate])
+  @@index([categoryId])
+  @@index([createdById])
+}
+
+// ============================================================
+// SYSTEM
+// ============================================================
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}
