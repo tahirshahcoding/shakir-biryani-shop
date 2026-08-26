@@ -5,7 +5,12 @@ import { authConfig } from "@/config/auth";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) {
+  if (
+    pathname.startsWith("/_next") || 
+    pathname.startsWith("/favicon") ||
+    pathname.includes(".png") ||
+    pathname.includes(".svg")
+  ) {
     return NextResponse.next();
   }
 
@@ -33,6 +38,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|manifest).*)",
   ],
 };
