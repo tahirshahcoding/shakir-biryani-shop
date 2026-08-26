@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -46,8 +47,8 @@ export default function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-xl shadow-lg p-8 border border-amber-100">
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "#D4A373" }}>
-              <span className="text-2xl font-bold text-white">SB</span>
+            <div className="mx-auto w-20 h-20 mb-4 flex items-center justify-center relative">
+              <Image src="/icon.png" alt="Shakir Biryani Logo" fill className="object-contain drop-shadow-md" priority />
             </div>
             <h1 className="text-2xl font-bold" style={{ color: "#3D2B1F" }}>
               Shakir Biryani

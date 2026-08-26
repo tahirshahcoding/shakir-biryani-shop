@@ -8,23 +8,22 @@ export async function getInventoryItems(filters: InventoryFilters = {}) {
   const { search, isLowStock, isActive, page = 1, pageSize = 25 } = filters;
 
   if (isLowStock) {
-    // Raw SQL: filter at DB level instead of fetching 10K rows
-    const whereClauses = ["isActive = 1", "currentQuantity <= minimumQuantity"];
+    const whereClauses = ['"isActive" = true', '"currentQuantity" <= "minimumQuantity"'];
     const params: unknown[] = [];
     if (search) {
-      whereClauses.push("name LIKE ?");
       params.push(`%${search}%`);
+      whereClauses.push(`name ILIKE $${params.length}`);
     }
     const where = whereClauses.join(" AND ");
     const offset = (page - 1) * pageSize;
 
     const [items, countResult] = await Promise.all([
       db.$queryRawUnsafe<{ id: string; name: string; unit: string; currentQuantity: number; minimumQuantity: number }[]>(
-        `SELECT id, name, unit, currentQuantity, minimumQuantity FROM InventoryItem WHERE ${where} ORDER BY name ASC LIMIT ${pageSize} OFFSET ${offset}`,
+        `SELECT id, name, unit, "currentQuantity", "minimumQuantity" FROM "InventoryItem" WHERE ${where} ORDER BY name ASC LIMIT ${pageSize} OFFSET ${offset}`,
         ...params
       ),
       db.$queryRawUnsafe<{ cnt: bigint }[]>(
-        `SELECT COUNT(*) as cnt FROM InventoryItem WHERE ${where}`,
+        `SELECT COUNT(*) as cnt FROM "InventoryItem" WHERE ${where}`,
         ...params
       ),
     ]);
@@ -94,7 +93,7 @@ export async function addStock(
     const newQuantity = previousQuantity + quantity;
 
     await tx.$executeRaw`
-      UPDATE InventoryItem SET currentQuantity = ${newQuantity} WHERE id = ${inventoryItemId}
+      UPDATE "InventoryItem" SET "currentQuantity" = ${newQuantity} WHERE id = ${inventoryItemId}
     `;
 
     const transaction = await tx.inventoryTransaction.create({
@@ -123,7 +122,7 @@ export async function adjustStock(
     const delta = newQuantity - previousQuantity;
 
     await tx.$executeRaw`
-      UPDATE InventoryItem SET currentQuantity = ${newQuantity} WHERE id = ${inventoryItemId}
+      UPDATE "InventoryItem" SET "currentQuantity" = ${newQuantity} WHERE id = ${inventoryItemId}
     `;
 
     const transaction = await tx.inventoryTransaction.create({

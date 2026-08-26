@@ -30,8 +30,8 @@ export default function ProductsPage() {
     setLoading(true);
     setError(null);
     Promise.all([
-      fetch(`/api/products?pageSize=100&search=${search}`).then(r => r.json()),
-      fetch("/api/categories").then(r => r.json()),
+      fetch(`/api/products?pageSize=100&search=${search}`, { cache: "no-store" }).then(r => r.json()),
+      fetch("/api/categories", { cache: "no-store" }).then(r => r.json()),
     ]).then(([p, c]) => {
       setProducts(p.data?.items || []);
       setCategories(c.data || []);

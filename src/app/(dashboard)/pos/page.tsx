@@ -40,9 +40,12 @@ export default function POSPage() {
   const [submitting, setSubmitting] = useState(false);
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setError(null);
     Promise.all([
       fetch("/api/products?pageSize=100").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
@@ -50,8 +53,13 @@ export default function POSPage() {
       setProducts(productsRes.data?.items || []);
       setCategories(categoriesRes.data || []);
       setLoading(false);
+    }).catch(() => {
+      setError("Failed to load products");
+      setLoading(false);
     });
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => products.filter((p) => {
     if (selectedCategory && p.category.id !== selectedCategory) return false;
@@ -176,13 +184,47 @@ export default function POSPage() {
     );
   }
 
-  // ─── Loading ───
-  if (loading) {
+  // ─── Error ───
+  if (error) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">Loading products...</p>
+          <p className="text-red-500 text-sm mb-3">{error}</p>
+          <button onClick={load} className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Loading ───
+  if (loading) {
+    return (
+      <div className="relative -m-4 sm:-m-6 lg:-m-8 min-h-screen bg-gray-50">
+        {/* Search bar skeleton */}
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3">
+          <div className="h-10 bg-gray-100 rounded-xl" />
+        </div>
+        {/* Category pills skeleton */}
+        <div className="sticky top-[60px] z-20 bg-white border-b border-gray-200 px-4 py-2.5">
+          <div className="flex gap-2 overflow-hidden">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-8 bg-gray-100 rounded-full shrink-0" style={{ width: i === 1 ? 60 : 80 + (i % 3) * 20 }} />
+            ))}
+          </div>
+        </div>
+        {/* Product grid skeleton */}
+        <div className="px-4 py-3 pb-28">
+          <div className="grid grid-cols-2 gap-2.5">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-xl p-3.5 border border-gray-200 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
+                <div className="h-5 bg-gray-200 rounded w-16" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

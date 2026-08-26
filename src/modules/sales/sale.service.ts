@@ -140,10 +140,10 @@ export async function voidSale(id: string, voidedById: string) {
       });
     }
 
-    // Batch inventory updates: one raw query per item (sqlite doesn't support CASE well)
+    // Batch inventory updates: one raw query per item
     // but batch the transaction log inserts
     for (const u of invUpdates) {
-      await tx.$executeRaw`UPDATE InventoryItem SET currentQuantity = ${u.prev + u.qty} WHERE id = ${u.id}`;
+      await tx.$executeRaw`UPDATE "InventoryItem" SET "currentQuantity" = ${u.prev + u.qty} WHERE id = ${u.id}`;
     }
     if (txCreates.length > 0) {
       await tx.inventoryTransaction.createMany({ data: txCreates });

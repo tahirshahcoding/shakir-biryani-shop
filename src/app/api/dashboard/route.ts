@@ -39,7 +39,7 @@ export const GET = withErrorHandling(async () => {
       _sum: { quantity: true, subtotal: true },
     }),
     db.$queryRawUnsafe<{ name: string; currentQuantity: number; minimumQuantity: number; unit: string }[]>(
-      "SELECT name, currentQuantity, minimumQuantity, unit FROM InventoryItem WHERE \"isActive\" = true AND \"currentQuantity\" <= \"minimumQuantity\" ORDER BY \"currentQuantity\" ASC LIMIT 10"
+      'SELECT name, "currentQuantity", "minimumQuantity", unit FROM "InventoryItem" WHERE "isActive" = true AND "currentQuantity" <= "minimumQuantity" ORDER BY "currentQuantity" ASC LIMIT 10'
     ),
     db.product.count({ where: { isActive: true } }),
   ]);
