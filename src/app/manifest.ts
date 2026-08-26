@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#ea580c', // Tailwind orange-600
     icons: [
       {
-        src: '/icon.png',
+        src: '/logo.png',
         sizes: 'any',
         type: 'image/png',
       },
