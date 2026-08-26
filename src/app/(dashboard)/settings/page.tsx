@@ -12,6 +12,10 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -78,6 +82,23 @@ export default function SettingsPage() {
       else { toast(data.error || "Restore failed", "error"); }
     } catch { toast("Restore failed", "error"); }
     setRestoreLoading(false);
+  };
+
+  const handlePasswordChange = async () => {
+    if (!pwCurrent || !pwNew) { toast("All fields required", "error"); return; }
+    if (pwNew !== pwConfirm) { toast("New passwords do not match", "error"); return; }
+    if (pwNew.length < 6) { toast("New password must be at least 6 characters", "error"); return; }
+    setPwSaving(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+      });
+      if (res.ok) { toast("Password changed successfully"); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }
+      else { const d = await res.json(); toast(d.error || "Failed to change password", "error"); }
+    } catch { toast("Network error", "error"); }
+    setPwSaving(false);
   };
 
   if (loading) return (
@@ -174,6 +195,19 @@ export default function SettingsPage() {
           </button>
         </div>
         <p className="text-xs text-gray-500 mt-2">Download creates a copy of the database. Restore replaces current data (a safety backup is saved first).</p>
+      </div>
+
+      {/* Change Password */}
+      <div className="mt-6 bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
+        <div className="space-y-3 max-w-sm">
+          <input type="password" placeholder="Current password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} aria-label="Current password" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          <input type="password" placeholder="New password (min 6 characters)" value={pwNew} onChange={(e) => setPwNew(e.target.value)} aria-label="New password" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          <input type="password" placeholder="Confirm new password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} aria-label="Confirm new password" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          <button onClick={handlePasswordChange} disabled={pwSaving} className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 disabled:opacity-50 transition-colors">
+            {pwSaving ? "Changing..." : "Change Password"}
+          </button>
+        </div>
       </div>
     </div>
   );

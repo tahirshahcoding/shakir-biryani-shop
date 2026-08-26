@@ -16,6 +16,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Shakir Biryani",
   description: "Biryani Shop Management System",
+  applicationName: "Shakir Biryani",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Shakir Biryani",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export const viewport = {
