@@ -47,8 +47,8 @@ export default function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-xl shadow-lg p-8 border border-amber-100">
           <div className="text-center mb-8">
-            <div className="mx-auto w-20 h-20 mb-4 flex items-center justify-center relative">
-              <Image src="/logo.png" alt="Shakir Biryani Logo" fill className="object-contain drop-shadow-md" priority unoptimized />
+            <div className="mx-auto w-24 h-24 mb-4 flex items-center justify-center">
+              <img src="/logo.png" alt="Shakir Biryani Logo" className="w-full h-full object-contain drop-shadow-md" />
             </div>
             <h1 className="text-2xl font-bold" style={{ color: "#3D2B1F" }}>
               Shakir Biryani
