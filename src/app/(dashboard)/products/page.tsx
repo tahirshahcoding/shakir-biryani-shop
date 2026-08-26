@@ -19,7 +19,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", categoryId: "", sellingPrice: "", costPrice: "", unit: "", trackStock: true });
+  const [form, setForm] = useState({ name: "", description: "", categoryId: "", sellingPrice: "", costPrice: "", unit: "", trackStock: false });
   const [saving, setSaving] = useState(false);
   const [showCatModal, setShowCatModal] = useState(false);
   const [catName, setCatName] = useState("");
@@ -44,7 +44,7 @@ export default function ProductsPage() {
 
   useEffect(() => { load(); }, [search]);
 
-  const openAdd = () => { setEditing(null); setForm({ name: "", description: "", categoryId: categories[0]?.id || "", sellingPrice: "", costPrice: "", unit: "pcs", trackStock: true }); setShowModal(true); };
+  const openAdd = () => { setEditing(null); setForm({ name: "", description: "", categoryId: categories[0]?.id || "", sellingPrice: "", costPrice: "", unit: "pcs", trackStock: false }); setShowModal(true); };
   const openEdit = (p: Product) => { setEditing(p); setForm({ name: p.name, description: p.description || "", categoryId: p.category.id, sellingPrice: String(p.sellingPrice), costPrice: p.costPrice ? String(p.costPrice) : "", unit: p.unit || "", trackStock: p.trackStock }); setShowModal(true); };
 
   const handleSave = async () => {
@@ -183,7 +183,7 @@ export default function ProductsPage() {
                 <input type="number" step="0.01" placeholder="Cost price" value={form.costPrice} onChange={(e) => setForm({...form, costPrice: e.target.value})} aria-label="Cost price" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
               </div>
               <input type="text" placeholder="Unit (e.g. pcs, kg)" value={form.unit} onChange={(e) => setForm({...form, unit: e.target.value})} aria-label="Unit" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.preventDefault(); setForm({...form, trackStock: !form.trackStock}); }}>
                 <div className={`relative w-10 h-5 rounded-full transition-colors ${form.trackStock ? "bg-orange-600" : "bg-gray-300"}`}>
                   <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.trackStock ? "translate-x-5" : ""}`} />
                 </div>
