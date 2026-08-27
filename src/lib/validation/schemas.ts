@@ -7,30 +7,30 @@ export const loginSchema = z.object({
 
 export const createProductSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
-  description: z.string().max(1000).nullish(),
+  description: z.string().max(1000).nullish().transform(v => v ?? undefined),
   categoryId: z.string().uuid("Invalid category"),
   sellingPrice: z.number().positive("Price must be positive"),
-  costPrice: z.number().nonnegative().nullish(),
-  unit: z.string().max(20).nullish(),
-  trackStock: z.boolean().nullish(),
+  costPrice: z.number().nonnegative().nullish().transform(v => v ?? undefined),
+  unit: z.string().max(20).nullish().transform(v => v ?? undefined),
+  trackStock: z.boolean().nullish().transform(v => v ?? undefined),
 });
 
 export const updateProductSchema = z.object({
-  name: z.string().min(1).max(200).nullish(),
-  description: z.string().max(1000).nullish(),
-  categoryId: z.string().uuid().nullish(),
-  sellingPrice: z.number().positive().nullish(),
-  costPrice: z.number().nonnegative().nullish(),
-  unit: z.string().max(20).nullish(),
-  trackStock: z.boolean().nullish(),
-  isAvailable: z.boolean().nullish(),
-  isActive: z.boolean().nullish(),
+  name: z.string().min(1).max(200).nullish().transform(v => v ?? undefined),
+  description: z.string().max(1000).nullish().transform(v => v ?? undefined),
+  categoryId: z.string().uuid().nullish().transform(v => v ?? undefined),
+  sellingPrice: z.number().positive().nullish().transform(v => v ?? undefined),
+  costPrice: z.number().nonnegative().nullish().transform(v => v ?? undefined),
+  unit: z.string().max(20).nullish().transform(v => v ?? undefined),
+  trackStock: z.boolean().nullish().transform(v => v ?? undefined),
+  isAvailable: z.boolean().nullish().transform(v => v ?? undefined),
+  isActive: z.boolean().nullish().transform(v => v ?? undefined),
 });
 
 export const createCategorySchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
-  description: z.string().max(500).nullish(),
-  sortOrder: z.number().int().nullish(),
+  description: z.string().max(500).nullish().transform(v => v ?? undefined),
+  sortOrder: z.number().int().nullish().transform(v => v ?? undefined),
 });
 
 export const createSaleSchema = z.object({
@@ -38,31 +38,31 @@ export const createSaleSchema = z.object({
     productId: z.string().uuid("Invalid product ID"),
     quantity: z.number().int().positive("Quantity must be at least 1"),
   })).min(1, "Cart cannot be empty").max(50, "Too many items"),
-  discount: z.number().nonnegative().nullish(),
-  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish(),
+  discount: z.number().nonnegative().nullish().transform(v => v ?? undefined),
+  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish().transform(v => v ?? undefined),
 });
 
 export const createExpenseSchema = z.object({
   categoryId: z.string().uuid("Invalid category"),
   amount: z.number().positive("Amount must be positive"),
-  description: z.string().max(500).nullish(),
-  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish(),
-  expenseDate: z.string().nullish(),
+  description: z.string().max(500).nullish().transform(v => v ?? undefined),
+  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish().transform(v => v ?? undefined),
+  expenseDate: z.string().nullish().transform(v => v ?? undefined),
 });
 
 export const updateExpenseSchema = z.object({
-  categoryId: z.string().uuid().nullish(),
-  amount: z.number().positive().nullish(),
-  description: z.string().max(500).nullish(),
-  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish(),
-  expenseDate: z.string().nullish(),
+  categoryId: z.string().uuid().nullish().transform(v => v ?? undefined),
+  amount: z.number().positive().nullish().transform(v => v ?? undefined),
+  description: z.string().max(500).nullish().transform(v => v ?? undefined),
+  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish().transform(v => v ?? undefined),
+  expenseDate: z.string().nullish().transform(v => v ?? undefined),
 });
 
 export const createInventoryItemSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   unit: z.string().min(1, "Unit is required").max(20),
-  currentQuantity: z.number().nonnegative().nullish(),
-  minimumQuantity: z.number().nonnegative().nullish(),
+  currentQuantity: z.number().nonnegative().nullish().transform(v => v ?? undefined),
+  minimumQuantity: z.number().nonnegative().nullish().transform(v => v ?? undefined),
 });
 
 export const stockInSchema = z.object({
@@ -85,11 +85,11 @@ export const createUserSchema = z.object({
 });
 
 export const updateUserSchema = z.object({
-  name: z.string().min(1).max(100).nullish(),
-  email: z.string().email().nullish(),
-  password: z.string().min(6).nullish(),
-  roleId: z.string().uuid().nullish(),
-  isActive: z.boolean().nullish(),
+  name: z.string().min(1).max(100).nullish().transform(v => v ?? undefined),
+  email: z.string().email().nullish().transform(v => v ?? undefined),
+  password: z.string().min(6).nullish().transform(v => v ?? undefined),
+  roleId: z.string().uuid().nullish().transform(v => v ?? undefined),
+  isActive: z.boolean().nullish().transform(v => v ?? undefined),
 });
 
 export const changePasswordSchema = z.object({
