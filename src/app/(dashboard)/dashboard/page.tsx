@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { formatCurrency } from "@/lib/format";
 import { 
   TrendingUp, 
@@ -56,11 +56,11 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastDateRef = useRef(new Date().toISOString().slice(0, 10));
 
-  const load = () => {
-    setLoading(true);
+  const load = useCallback(() => {
     setError(null);
-    fetch("/api/dashboard")
+    fetch("/api/dashboard", { cache: "no-store" })
       .then((r) => r.json())
       .then((res) => {
         if (res.success) setData(res.data);
@@ -71,9 +71,21 @@ export default function DashboardPage() {
         setError("Failed to load dashboard");
         setLoading(false);
       });
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
+
+  // Re-fetch when the day changes at midnight
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const today = new Date().toISOString().slice(0, 10);
+      if (today !== lastDateRef.current) {
+        lastDateRef.current = today;
+        load();
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [load]);
 
   if (loading) return <DashboardSkeleton />;
 

@@ -30,7 +30,7 @@ export default function SalesPage() {
     if (search) params.set("search", search);
     if (dateRange.start) params.set("startDate", dateRange.start);
     if (dateRange.end) params.set("endDate", dateRange.end);
-    fetch(`/api/sales?${params}`).then((r) => r.json()).then((res) => {
+    fetch(`/api/sales?${params}`, { cache: "no-store" }).then((r) => r.json()).then((res) => {
       setSales(res.data?.items || []);
       setTotal(res.data?.total || 0);
       setLoading(false);

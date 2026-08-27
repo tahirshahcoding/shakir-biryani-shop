@@ -55,7 +55,7 @@ export default function ReportsPage() {
     if (dateRange.start) params.set("startDate", dateRange.start);
     if (dateRange.end) params.set("endDate", dateRange.end);
 
-    fetch(`/api/reports?${params}`)
+    fetch(`/api/reports?${params}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((res) => {
         if (res.success) {

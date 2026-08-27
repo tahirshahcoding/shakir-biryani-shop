@@ -71,5 +71,7 @@ export const GET = withErrorHandling(async () => {
       lowStockItems: lowStock,
       recentSales,
     },
+  }, {
+    headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
   });
 });

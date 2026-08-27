@@ -7,30 +7,30 @@ export const loginSchema = z.object({
 
 export const createProductSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
-  description: z.string().max(1000).optional(),
+  description: z.string().max(1000).nullish(),
   categoryId: z.string().uuid("Invalid category"),
   sellingPrice: z.number().positive("Price must be positive"),
-  costPrice: z.number().nonnegative().optional(),
-  unit: z.string().max(20).optional(),
-  trackStock: z.boolean().optional(),
+  costPrice: z.number().nonnegative().nullish(),
+  unit: z.string().max(20).nullish(),
+  trackStock: z.boolean().nullish(),
 });
 
 export const updateProductSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  description: z.string().max(1000).optional(),
-  categoryId: z.string().uuid().optional(),
-  sellingPrice: z.number().positive().optional(),
-  costPrice: z.number().nonnegative().optional(),
-  unit: z.string().max(20).optional(),
-  trackStock: z.boolean().optional(),
-  isAvailable: z.boolean().optional(),
-  isActive: z.boolean().optional(),
+  name: z.string().min(1).max(200).nullish(),
+  description: z.string().max(1000).nullish(),
+  categoryId: z.string().uuid().nullish(),
+  sellingPrice: z.number().positive().nullish(),
+  costPrice: z.number().nonnegative().nullish(),
+  unit: z.string().max(20).nullish(),
+  trackStock: z.boolean().nullish(),
+  isAvailable: z.boolean().nullish(),
+  isActive: z.boolean().nullish(),
 });
 
 export const createCategorySchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
-  description: z.string().max(500).optional(),
-  sortOrder: z.number().int().optional(),
+  description: z.string().max(500).nullish(),
+  sortOrder: z.number().int().nullish(),
 });
 
 export const createSaleSchema = z.object({
@@ -38,31 +38,31 @@ export const createSaleSchema = z.object({
     productId: z.string().uuid("Invalid product ID"),
     quantity: z.number().int().positive("Quantity must be at least 1"),
   })).min(1, "Cart cannot be empty").max(50, "Too many items"),
-  discount: z.number().nonnegative().optional(),
-  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).optional(),
+  discount: z.number().nonnegative().nullish(),
+  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish(),
 });
 
 export const createExpenseSchema = z.object({
   categoryId: z.string().uuid("Invalid category"),
   amount: z.number().positive("Amount must be positive"),
-  description: z.string().max(500).optional(),
-  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).optional(),
-  expenseDate: z.string().optional(),
+  description: z.string().max(500).nullish(),
+  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish(),
+  expenseDate: z.string().nullish(),
 });
 
 export const updateExpenseSchema = z.object({
-  categoryId: z.string().uuid().optional(),
-  amount: z.number().positive().optional(),
-  description: z.string().max(500).optional(),
-  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).optional(),
-  expenseDate: z.string().optional(),
+  categoryId: z.string().uuid().nullish(),
+  amount: z.number().positive().nullish(),
+  description: z.string().max(500).nullish(),
+  paymentMethod: z.enum(["CASH", "CARD", "ONLINE", "OTHER"]).nullish(),
+  expenseDate: z.string().nullish(),
 });
 
 export const createInventoryItemSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   unit: z.string().min(1, "Unit is required").max(20),
-  currentQuantity: z.number().nonnegative().optional(),
-  minimumQuantity: z.number().nonnegative().optional(),
+  currentQuantity: z.number().nonnegative().nullish(),
+  minimumQuantity: z.number().nonnegative().nullish(),
 });
 
 export const stockInSchema = z.object({
@@ -85,11 +85,11 @@ export const createUserSchema = z.object({
 });
 
 export const updateUserSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  email: z.string().email().optional(),
-  password: z.string().min(6).optional(),
-  roleId: z.string().uuid().optional(),
-  isActive: z.boolean().optional(),
+  name: z.string().min(1).max(100).nullish(),
+  email: z.string().email().nullish(),
+  password: z.string().min(6).nullish(),
+  roleId: z.string().uuid().nullish(),
+  isActive: z.boolean().nullish(),
 });
 
 export const changePasswordSchema = z.object({
