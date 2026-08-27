@@ -6,6 +6,7 @@ import { TableSkeleton, EmptyState } from "@/components/ui/skeleton";
 import { MobileCard, MobileCardRow, MobileCardGrid, DesktopTable } from "@/components/ui/mobile-card";
 import { useModal } from "@/hooks/use-modal";
 import { Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
 
 type Category = { id: string; name: string; description: string | null; sortOrder: number | null; isActive: boolean; _count: { products: number } };
 type Product = { id: string; name: string; description: string | null; sellingPrice: number; costPrice: number | null; unit: string | null; trackStock: boolean; isAvailable: boolean; isActive: boolean; category: { id: string; name: string } };
@@ -21,12 +22,7 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ name: "", description: "", categoryId: "", sellingPrice: "", costPrice: "", unit: "", trackStock: false });
   const [saving, setSaving] = useState(false);
-  const [showCatModal, setShowCatModal] = useState(false);
-  const [editingCat, setEditingCat] = useState<Category | null>(null);
-  const [catForm, setCatForm] = useState({ name: "", description: "", sortOrder: "" });
-  const [catSaving, setCatSaving] = useState(false);
   const modal = useModal(showModal, () => setShowModal(false));
-  const catModal = useModal(showCatModal, () => setShowCatModal(false));
 
   const load = () => {
     setLoading(true);
@@ -66,33 +62,6 @@ export default function ProductsPage() {
     if (res.ok) { toast("Product deleted"); load(); } else { const d = await res.json(); toast(d.error || "Failed", "error"); }
   };
 
-  const openAddCategory = () => { setEditingCat(null); setCatForm({ name: "", description: "", sortOrder: "" }); setShowCatModal(true); };
-  const openEditCategory = (c: Category) => { setEditingCat(c); setCatForm({ name: c.name, description: c.description || "", sortOrder: c.sortOrder ? String(c.sortOrder) : "" }); setShowCatModal(true); };
-
-  const handleSaveCategory = async () => {
-    if (!catForm.name.trim()) { toast("Category name required", "error"); return; }
-    setCatSaving(true);
-    const url = editingCat ? `/api/categories/${editingCat.id}` : "/api/categories";
-    const body = { name: catForm.name.trim(), description: catForm.description || null, sortOrder: catForm.sortOrder ? parseInt(catForm.sortOrder) : null };
-    const method = editingCat ? "PATCH" : "POST";
-    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    setCatSaving(false);
-    if (res.ok) {
-      toast(editingCat ? "Category updated" : "Category added");
-      setShowCatModal(false);
-      load();
-    } else {
-      const d = await res.json();
-      toast(d.error || "Failed", "error");
-    }
-  };
-
-  const handleDeleteCategory = async (id: string, name: string) => {
-    if (!confirm(`Delete "${name}"? Products in this category will remain but become uncategorized.`)) return;
-    const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
-    if (res.ok) { toast("Category deleted"); load(); } else { const d = await res.json(); toast(d.error || "Failed", "error"); }
-  };
-
   if (loading) return <div className="space-y-4"><h1 className="text-2xl font-bold text-gray-900">Products</h1><TableSkeleton rows={5} cols={5} /></div>;
 
   if (error) return (
@@ -111,7 +80,7 @@ export default function ProductsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Products</h1>
         <div className="flex gap-2">
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." aria-label="Search products" className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 flex-1 sm:w-48" />
-          <button onClick={openAddCategory} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap">+ Category</button>
+          <Link href="/categories" className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap">Manage Categories</Link>
           <button onClick={openAdd} className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap">+ Product</button>
         </div>
       </div>
@@ -178,31 +147,7 @@ export default function ProductsPage() {
         </>
       )}
 
-      {/* Categories Section */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Categories</h2>
-          <button onClick={openAddCategory} className="px-3 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50 transition-colors">+ Add</button>
-        </div>
-        {categories.length === 0 ? (
-          <p className="text-sm text-gray-400">No categories yet</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {categories.map((c) => (
-              <div key={c.id} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
-                  <p className="text-xs text-gray-400">{c._count.products} {c._count.products === 1 ? "product" : "products"}</p>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => openEditCategory(c)} className="p-1.5 text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors" title="Edit"><Pencil className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => handleDeleteCategory(c.id, c.name)} className="p-1.5 text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+
 
       {showModal && (
         <div ref={modal.overlayRef} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label={editing ? "Edit Product" : "Add Product"} onClick={() => setShowModal(false)}>
@@ -236,22 +181,7 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {showCatModal && (
-        <div ref={catModal.overlayRef} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label={editingCat ? "Edit Category" : "Add Category"} onClick={() => setShowCatModal(false)}>
-          <div className="bg-white rounded-lg max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-4">{editingCat ? "Edit Category" : "Add Category"}</h2>
-            <div className="space-y-3">
-              <input type="text" placeholder="Name" value={catForm.name} onChange={(e) => setCatForm({...catForm, name: e.target.value})} onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()} autoFocus aria-label="Category name" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
-              <input type="text" placeholder="Description (optional)" value={catForm.description} onChange={(e) => setCatForm({...catForm, description: e.target.value})} aria-label="Description" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
-              <input type="number" placeholder="Sort order (optional)" value={catForm.sortOrder} onChange={(e) => setCatForm({...catForm, sortOrder: e.target.value})} aria-label="Sort order" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setShowCatModal(false)} className="flex-1 py-2 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50">Cancel</button>
-                <button onClick={handleSaveCategory} disabled={catSaving} className="flex-1 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 disabled:opacity-50">{catSaving ? "Saving..." : editingCat ? "Update" : "Add"}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
