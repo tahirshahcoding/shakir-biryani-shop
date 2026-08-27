@@ -5,11 +5,16 @@ import { useEffect, useRef, useCallback } from "react";
 export function useModal(open: boolean, onClose: () => void) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab") return;
@@ -37,7 +42,7 @@ export function useModal(open: boolean, onClose: () => void) {
         }
       }
     },
-    [onClose]
+    []
   );
 
   useEffect(() => {
