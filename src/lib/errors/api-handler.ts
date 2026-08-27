@@ -38,8 +38,9 @@ export function handleApiError(error: unknown): NextResponse {
   }
 
   console.error("Unhandled API error:", error);
+  const errorMessage = error instanceof Error ? error.message : "Internal server error";
   return NextResponse.json(
-    { success: false, error: "Internal server error" },
+    { success: false, error: errorMessage },
     { status: 500 }
   );
 }
