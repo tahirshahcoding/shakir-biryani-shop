@@ -5,7 +5,8 @@ import { getExpenseById, updateExpense, deleteExpense } from "@/modules/expenses
 import { NotFoundError } from "@/lib/errors";
 
 export const GET = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "EXPENSES_VIEW");
   const { id } = await params;
   const expense = await getExpenseById(id);
   if (!expense) throw new NotFoundError("Expense");

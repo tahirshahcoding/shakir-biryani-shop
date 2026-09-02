@@ -4,7 +4,8 @@ import { createSaleSchema } from "@/lib/validation/schemas";
 import { getSales, createSale } from "@/modules/sales/sale.service";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "SALES_VIEW");
   const { searchParams } = new URL(request.url);
   const result = await getSales({
     status: searchParams.get("status") || undefined,

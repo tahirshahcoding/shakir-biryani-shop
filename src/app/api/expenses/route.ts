@@ -4,7 +4,8 @@ import { createExpenseSchema } from "@/lib/validation/schemas";
 import { getExpenses, createExpense } from "@/modules/expenses/expense.service";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "EXPENSES_VIEW");
   const { searchParams } = new URL(request.url);
   const result = await getExpenses({
     categoryId: searchParams.get("categoryId") || undefined,

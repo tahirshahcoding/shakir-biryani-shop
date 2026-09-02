@@ -19,7 +19,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   const session = await requireSession();
-  requirePermission(session, "USERS_MANAGE");
+  requirePermission(session, "USERS_CREATE");
   const body = await request.json();
   const validated = createUserSchema.parse(body);
 

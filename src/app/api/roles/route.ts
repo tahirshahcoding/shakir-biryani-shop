@@ -7,6 +7,15 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 
   const { searchParams } = new URL(request.url);
   const detail = searchParams.get("detail") === "true";
+  const permissions = searchParams.get("permissions") === "true";
+
+  if (permissions) {
+    const perms = await db.permission.findMany({
+      select: { id: true, code: true, description: true },
+      orderBy: { code: "asc" },
+    });
+    return NextResponse.json({ success: true, data: perms });
+  }
 
   if (detail) {
     const roles = await db.role.findMany({
@@ -39,16 +48,4 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   });
 
   return NextResponse.json({ success: true, data: roles });
-});
-
-export const POST = withErrorHandling(async () => {
-  const session = await requireSession();
-  requirePermission(session, "ROLES_MANAGE");
-
-  const permissions = await db.permission.findMany({
-    select: { id: true, code: true, description: true },
-    orderBy: { code: "asc" },
-  });
-
-  return NextResponse.json({ success: true, data: permissions });
 });

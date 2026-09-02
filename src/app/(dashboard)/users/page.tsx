@@ -49,12 +49,11 @@ export default function UsersPage() {
     setError(null);
     Promise.all([
       fetch("/api/users").then(r => r.json()),
-      fetch("/api/roles").then(r => r.json()),
       fetch("/api/roles?detail=true").then(r => r.json()),
-      fetch("/api/roles", { method: "POST" }).then(r => r.json()),
-    ]).then(([u, r, rd, perms]) => {
+      fetch("/api/roles?permissions=true").then(r => r.json()),
+    ]).then(([u, rd, perms]) => {
       setUsers(u.data?.items || []);
-      setRoles(r.data || []);
+      setRoles((rd.data || []).map((r: RoleDetail) => ({ id: r.id, name: r.name })));
       setRoleDetails(rd.data || []);
       setAllPermissions(perms.data || []);
       setLoading(false);

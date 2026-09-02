@@ -47,10 +47,10 @@ export default function POSPage() {
     setLoading(true);
     setError(null);
     Promise.all([
-      fetch("/api/products?pageSize=100").then((r) => r.json()),
+      fetch("/api/products?all=true").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
     ]).then(([productsRes, categoriesRes]) => {
-      setProducts(productsRes.data?.items || []);
+      setProducts(productsRes.data || []);
       setCategories(categoriesRes.data || []);
       setLoading(false);
     }).catch(() => {
@@ -424,7 +424,7 @@ export default function POSPage() {
               <div className="px-5 py-4 border-t border-gray-200 space-y-3 bg-white">
                 {/* Discount */}
                 <div className="flex items-center gap-3">
-                  <label htmlFor="pos-discount" className="text-sm text-gray-500 shrink-0">Discount</label>
+                  <label htmlFor="pos-discount" className="text-sm text-gray-500 shrink-0">Discount (optional)</label>
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rs.</span>
                     <input

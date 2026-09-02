@@ -5,7 +5,8 @@ import { getProductById, updateProduct, deleteProduct } from "@/modules/products
 import { NotFoundError } from "@/lib/errors";
 
 export const GET = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "PRODUCTS_VIEW");
   const { id } = await params;
   const product = await getProductById(id);
   if (!product) throw new NotFoundError("Product");
@@ -24,7 +25,7 @@ export const PATCH = withErrorHandling(async (request: NextRequest, { params }: 
 
 export const DELETE = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
   const session = await requireSession();
-  requirePermission(session, "PRODUCTS_EDIT");
+  requirePermission(session, "PRODUCTS_DELETE");
   const { id } = await params;
   await deleteProduct(id, session.userId);
   return NextResponse.json({ success: true });

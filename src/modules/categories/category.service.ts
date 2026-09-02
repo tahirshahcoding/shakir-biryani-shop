@@ -1,5 +1,6 @@
 import * as categoryRepo from "./category.repository";
 import * as auditRepo from "@/modules/audit/audit.repository";
+import { ConflictError } from "@/lib/errors";
 
 export async function getCategories() {
   return categoryRepo.findManyActive();
@@ -15,10 +16,27 @@ export async function createCategory(data: {
   sortOrder?: number;
   createdById: string;
 }) {
-  const category = await categoryRepo.create(data);
+  const { createdById, ...repoData } = data;
+  const existing = await categoryRepo.findByName(data.name);
+  if (existing) {
+    if (existing.isActive) {
+      throw new ConflictError(`A category named "${data.name}" already exists`);
+    }
+    const reactivated = await categoryRepo.update(existing.id, { ...repoData, isActive: true });
+    await auditRepo.create({
+      userId: createdById,
+      action: "CATEGORY_REACTIVATED",
+      entityType: "Category",
+      entityId: existing.id,
+      metadata: { name: existing.name },
+    });
+    return reactivated;
+  }
+
+  const category = await categoryRepo.create(repoData);
 
   await auditRepo.create({
-    userId: data.createdById,
+    userId: createdById,
     action: "CATEGORY_CREATED",
     entityType: "Category",
     entityId: category.id,

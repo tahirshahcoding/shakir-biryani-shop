@@ -61,44 +61,6 @@ export async function findById(id: string) {
   });
 }
 
-export async function findByIdWithItems(id: string) {
-  return db.sale.findUnique({ where: { id }, include: { items: true } });
-}
-
-export async function createWithItems(data: {
-  invoiceNumber: string;
-  subtotal: number;
-  discount: number;
-  total: number;
-  paymentMethod: string;
-  createdById: string;
-  items: {
-    productId: string;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    subtotal: number;
-  }[];
-}) {
-  return db.sale.create({
-    data: {
-      invoiceNumber: data.invoiceNumber,
-      subtotal: data.subtotal,
-      discount: data.discount,
-      total: data.total,
-      status: "COMPLETED",
-      paymentMethod: data.paymentMethod,
-      createdById: data.createdById,
-      items: { create: data.items },
-      payment: { create: { amount: data.total, method: data.paymentMethod } },
-    },
-    include: {
-      items: true,
-      createdBy: { select: { id: true, name: true } },
-    },
-  });
-}
-
 export async function updateStatus(id: string, status: string) {
   return db.sale.update({ where: { id }, data: { status } });
 }
@@ -114,23 +76,3 @@ export async function aggregate(where: Record<string, unknown>, opts?: { sum?: s
     _count: true,
   });
 }
-
-// --- Transaction helpers (for $transaction callers) ---
-
-export const txHelpers = {
-  findByIdWithItems: (tx: typeof db, id: string) =>
-    tx.sale.findUnique({ where: { id }, include: { items: true } }),
-
-  updateStatus: (tx: typeof db, id: string, status: string) =>
-    tx.sale.update({ where: { id }, data: { status } }),
-
-  findUnique: (tx: typeof db, id: string) =>
-    tx.sale.findUnique({
-      where: { id },
-      include: {
-        items: true,
-        createdBy: { select: { id: true, name: true } },
-        payment: true,
-      },
-    }),
-};

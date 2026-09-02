@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandling, requireSession, requirePermission } from "@/lib/errors/api-handler";
 import { createInventoryItemSchema, stockInSchema, adjustStockSchema } from "@/lib/validation/schemas";
 import { getInventoryItems, createInventoryItem, addStock, adjustStock } from "@/modules/inventory/inventory.service";
+import { findNumber } from "@/modules/settings/setting.repository";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "INVENTORY_VIEW");
   const { searchParams } = new URL(request.url);
+  const lowStockThreshold = (await findNumber("LOW_STOCK_THRESHOLD")) ?? 0;
   const result = await getInventoryItems({
     search: searchParams.get("search") || undefined,
     isLowStock: searchParams.get("isLowStock") === "true",
+    lowStockThreshold,
     page: Number(searchParams.get("page")) || 1,
     pageSize: Number(searchParams.get("pageSize")) || 25,
   });

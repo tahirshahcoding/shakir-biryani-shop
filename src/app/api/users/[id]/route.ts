@@ -6,7 +6,8 @@ import * as userRepo from "@/modules/users/user.repository";
 import { NotFoundError } from "@/lib/errors";
 
 export const GET = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "USERS_VIEW");
   const { id } = await params;
   const user = await userRepo.findById(id);
   if (!user) throw new NotFoundError("User");
@@ -15,7 +16,7 @@ export const GET = withErrorHandling(async (_request: NextRequest, { params }: A
 
 export const PATCH = withErrorHandling(async (request: NextRequest, { params }: ApiContext) => {
   const session = await requireSession();
-  requirePermission(session, "USERS_MANAGE");
+  requirePermission(session, "USERS_EDIT");
   const { id } = await params;
   const body = await request.json();
   const validated = updateUserSchema.parse(body);
@@ -33,11 +34,19 @@ export const PATCH = withErrorHandling(async (request: NextRequest, { params }: 
 
 export const DELETE = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
   const session = await requireSession();
-  requirePermission(session, "USERS_MANAGE");
+  requirePermission(session, "USERS_DELETE");
   const { id } = await params;
   if (id === session.userId) {
     return NextResponse.json({ success: false, error: "Cannot delete yourself" }, { status: 400 });
   }
-  await userRepo.remove(id);
+  const target = await userRepo.findById(id);
+  if (!target) throw new NotFoundError("User");
+  if (target.isActive) {
+    const [activeCount] = await Promise.all([userRepo.countActive()]);
+    if (activeCount <= 1) {
+      return NextResponse.json({ success: false, error: "Cannot deactivate the last active user" }, { status: 400 });
+    }
+  }
+  await userRepo.deactivate(id);
   return NextResponse.json({ success: true });
 });

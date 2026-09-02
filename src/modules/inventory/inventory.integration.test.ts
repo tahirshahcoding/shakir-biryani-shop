@@ -35,13 +35,17 @@ describe("inventory.service integration", () => {
       m.inventoryItem.findUnique
         .mockResolvedValueOnce(mockItem)
         .mockResolvedValueOnce({ ...mockItem, currentQuantity: 150 });
+      m.inventoryItem.update.mockResolvedValue({ ...mockItem, currentQuantity: 150 });
       m.inventoryTransaction.create.mockResolvedValue({ id: "txn-1", type: "STOCK_IN" });
       m.auditLog.create.mockResolvedValue({});
 
       await inventoryService.addStock("inv-1", 50, "Purchase delivery", "user-1");
 
       expect(m.inventoryItem.findUnique).toHaveBeenCalledWith({ where: { id: "inv-1" } });
-      expect((m as any).$executeRaw).toHaveBeenCalled();
+      expect(m.inventoryItem.update).toHaveBeenCalledWith({
+        where: { id: "inv-1" },
+        data: { currentQuantity: { increment: 50 } },
+      });
       expect(m.inventoryTransaction.create).toHaveBeenCalledOnce();
     });
 
@@ -53,42 +57,23 @@ describe("inventory.service integration", () => {
 
   describe("adjustStock", () => {
     it("sets new quantity and creates adjustment record", async () => {
-      m.inventoryItem.findUnique
-        .mockResolvedValueOnce(mockItem)
-        .mockResolvedValueOnce({ ...mockItem, currentQuantity: 80 });
+      m.inventoryItem.findUnique.mockResolvedValue(mockItem);
+      m.inventoryItem.update.mockResolvedValue({ ...mockItem, currentQuantity: 80 });
       m.inventoryTransaction.create.mockResolvedValue({ id: "txn-2", type: "ADJUSTMENT" });
       m.auditLog.create.mockResolvedValue({});
 
       await inventoryService.adjustStock("inv-1", 80, "Physical count correction", "user-1");
 
-      expect((m as any).$executeRaw).toHaveBeenCalled();
+      expect(m.inventoryItem.update).toHaveBeenCalledWith({
+        where: { id: "inv-1" },
+        data: { currentQuantity: 80 },
+      });
       expect(m.inventoryTransaction.create).toHaveBeenCalledOnce();
     });
 
     it("throws when item not found", async () => {
       m.inventoryItem.findUnique.mockResolvedValue(null);
       await expect(inventoryService.adjustStock("nonexistent", 0, "reason", "user-1")).rejects.toThrow("Inventory item not found");
-    });
-  });
-
-  describe("restoreStock", () => {
-    it("increases stock on restore", async () => {
-      m.inventoryItem.findUnique.mockResolvedValue(mockItem);
-      m.inventoryItem.update.mockResolvedValue({});
-      m.inventoryTransaction.create.mockResolvedValue({});
-
-      await inventoryService.restoreStock(db as never, "inv-1", 3, "Sale void reversal", "user-1");
-
-      expect(m.inventoryItem.update).toHaveBeenCalledWith({
-        where: { id: "inv-1" },
-        data: { currentQuantity: 103 },
-      });
-    });
-
-    it("silently returns when item not found", async () => {
-      m.inventoryItem.findUnique.mockResolvedValue(null);
-      await inventoryService.restoreStock(db as never, "nonexistent", 5, "reason", "user-1");
-      expect(m.inventoryItem.update).not.toHaveBeenCalled();
     });
   });
 });

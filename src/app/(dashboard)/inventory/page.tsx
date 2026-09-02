@@ -298,7 +298,7 @@ function AddItemModal({ onSubmit, onClose, modalRef }: { onSubmit: (data: { name
             </select>
           </div>
           <div>
-            <label htmlFor="add-min" className="block text-sm font-medium text-gray-700 mb-1">Minimum Quantity</label>
+            <label htmlFor="add-min" className="block text-sm font-medium text-gray-700 mb-1">Minimum Quantity (optional)</label>
             <input id="add-min" type="number" min="0" value={minQty} onChange={(e) => setMinQty(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
           <div className="flex gap-2 pt-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ui/toast";
 import { TableSkeleton, EmptyState } from "@/components/ui/skeleton";
 import { MobileCard, MobileCardRow, MobileCardGrid, DesktopTable } from "@/components/ui/mobile-card";
@@ -18,29 +18,36 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ name: "", description: "", categoryId: "", sellingPrice: "", costPrice: "", unit: "", trackStock: false });
   const [saving, setSaving] = useState(false);
   const modal = useModal(showModal, () => setShowModal(false));
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
+    const params = new URLSearchParams({ page: String(page), pageSize: "10" });
+    if (search) params.set("search", search);
     Promise.all([
-      fetch(`/api/products?pageSize=100&search=${search}`, { cache: "no-store" }).then(r => r.json()),
+      fetch(`/api/products?${params}`, { cache: "no-store" }).then(r => r.json()),
       fetch("/api/categories", { cache: "no-store" }).then(r => r.json()),
     ]).then(([p, c]) => {
       setProducts(p.data?.items || []);
+      setTotal(p.data?.total || 0);
       setCategories(c.data || []);
       setLoading(false);
     }).catch(() => {
       setError("Failed to load products");
       setLoading(false);
     });
-  };
+  }, [page, search]);
 
-  useEffect(() => { load(); }, [search]);
+  useEffect(() => { setPage(1); }, [search]);
+
+  useEffect(() => { load(); }, [load]);
 
   const openAdd = () => { setEditing(null); setForm({ name: "", description: "", categoryId: categories[0]?.id || "", sellingPrice: "", costPrice: "", unit: "pcs", trackStock: false }); setShowModal(true); };
   const openEdit = (p: Product) => { setEditing(p); setForm({ name: p.name, description: p.description || "", categoryId: p.category.id, sellingPrice: String(p.sellingPrice), costPrice: p.costPrice ? String(p.costPrice) : "", unit: p.unit || "", trackStock: p.trackStock }); setShowModal(true); };
@@ -144,6 +151,15 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </DesktopTable>
+
+          <div className="flex items-center justify-between gap-4 pt-2 text-sm text-gray-600">
+            <p>Total: {total} products</p>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Previous</button>
+              <span className="px-3 py-1.5 text-sm">Page {page}</span>
+              <button onClick={() => setPage((p) => p + 1)} disabled={page * 10 >= total} className="px-3 py-1.5 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Next</button>
+            </div>
+          </div>
         </>
       )}
 
@@ -155,16 +171,16 @@ export default function ProductsPage() {
             <h2 className="text-lg font-bold mb-4">{editing ? "Edit Product" : "Add Product"}</h2>
             <div className="space-y-3">
               <input type="text" placeholder="Name" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} aria-label="Product name" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
-              <input type="text" placeholder="Description" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} aria-label="Description" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+              <input type="text" placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} aria-label="Description" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
               <select value={form.categoryId} onChange={(e) => setForm({...form, categoryId: e.target.value})} aria-label="Category" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
                 <option value="">Select category</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-2">
                 <input type="number" step="0.01" placeholder="Selling price" value={form.sellingPrice} onChange={(e) => setForm({...form, sellingPrice: e.target.value})} aria-label="Selling price" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
-                <input type="number" step="0.01" placeholder="Cost price" value={form.costPrice} onChange={(e) => setForm({...form, costPrice: e.target.value})} aria-label="Cost price" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+                <input type="number" step="0.01" placeholder="Cost price (optional)" value={form.costPrice} onChange={(e) => setForm({...form, costPrice: e.target.value})} aria-label="Cost price" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
               </div>
-              <input type="text" placeholder="Unit (e.g. pcs, kg)" value={form.unit} onChange={(e) => setForm({...form, unit: e.target.value})} aria-label="Unit" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+              <input type="text" placeholder="Unit (optional, e.g. pcs, kg)" value={form.unit} onChange={(e) => setForm({...form, unit: e.target.value})} aria-label="Unit" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
               <label className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.preventDefault(); setForm({...form, trackStock: !form.trackStock}); }}>
                 <div className={`relative w-10 h-5 rounded-full transition-colors ${form.trackStock ? "bg-orange-600" : "bg-gray-300"}`}>
                   <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.trackStock ? "translate-x-5" : ""}`} />

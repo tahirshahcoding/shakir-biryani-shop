@@ -42,16 +42,25 @@ export default function CategoriesPage() {
     const url = editing ? `/api/categories/${editing.id}` : "/api/categories";
     const body = { name: form.name, description: form.description || null, sortOrder: form.sortOrder ? parseInt(form.sortOrder) : null };
     const method = editing ? "PATCH" : "POST";
-    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    setSaving(false);
-    if (res.ok) { toast(editing ? "Category updated" : "Category created"); setShowModal(false); load(); }
-    else { const d = await res.json(); toast(d.error || "Failed", "error"); }
+    try {
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      setSaving(false);
+      if (res.ok) { toast(editing ? "Category updated" : "Category created"); setShowModal(false); load(); }
+      else { const d = await res.json(); toast(d.error || "Failed", "error"); }
+    } catch (error) {
+      setSaving(false);
+      toast("Network error. Please try again.", "error");
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"? Products in this category will remain but become uncategorized.`)) return;
-    const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
-    if (res.ok) { toast("Category deleted"); load(); } else { const d = await res.json(); toast(d.error || "Failed", "error"); }
+    try {
+      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      if (res.ok) { toast("Category deleted"); load(); } else { const d = await res.json(); toast(d.error || "Failed", "error"); }
+    } catch (error) {
+      toast("Network error. Please try again.", "error");
+    }
   };
 
   if (loading) return <div className="space-y-6"><h1 className="text-2xl font-bold text-gray-900">Categories</h1><TableSkeleton rows={5} cols={4} /></div>;
@@ -134,8 +143,8 @@ export default function CategoriesPage() {
             <h2 className="text-lg font-bold mb-4">{editing ? "Edit Category" : "Add Category"}</h2>
             <div className="space-y-3">
               <input type="text" placeholder="Name" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" aria-label="Category name" />
-              <input type="text" placeholder="Description" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" aria-label="Category description" />
-              <input type="number" placeholder="Sort order" value={form.sortOrder} onChange={(e) => setForm({...form, sortOrder: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" aria-label="Sort order" />
+              <input type="text" placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" aria-label="Category description" />
+              <input type="number" placeholder="Sort order (optional)" value={form.sortOrder} onChange={(e) => setForm({...form, sortOrder: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" aria-label="Sort order" />
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setShowModal(false)} className="flex-1 py-2 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50">Cancel</button>
                 <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>

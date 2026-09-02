@@ -4,7 +4,8 @@ import { createCategorySchema } from "@/lib/validation/schemas";
 import { getExpenseCategories, createExpenseCategory } from "@/modules/expenses/expense.service";
 
 export const GET = withErrorHandling(async () => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "EXPENSES_VIEW");
   const categories = await getExpenseCategories();
   return NextResponse.json({ success: true, data: categories });
 });

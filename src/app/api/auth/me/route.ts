@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/modules/auth/auth.service";
+import { getActiveSession } from "@/modules/auth/auth.service";
 
 export async function GET() {
-  const session = await getSession();
+  const session = await getActiveSession();
 
   if (!session) {
     return NextResponse.json(

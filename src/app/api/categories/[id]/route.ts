@@ -5,7 +5,8 @@ import { getCategoryById, updateCategory, deleteCategory } from "@/modules/categ
 import { NotFoundError } from "@/lib/errors";
 
 export const GET = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "CATEGORIES_VIEW");
   const { id } = await params;
   const category = await getCategoryById(id);
   if (!category) throw new NotFoundError("Category");
@@ -24,7 +25,7 @@ export const PATCH = withErrorHandling(async (request: NextRequest, { params }: 
 
 export const DELETE = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
   const session = await requireSession();
-  requirePermission(session, "CATEGORIES_EDIT");
+  requirePermission(session, "CATEGORIES_DELETE");
   const { id } = await params;
   await deleteCategory(id, session.userId);
   return NextResponse.json({ success: true });

@@ -139,6 +139,7 @@ async function main() {
   const cashierPermCodes = [
     "DASHBOARD_VIEW",
     "PRODUCTS_VIEW",
+    "CATEGORIES_VIEW",
     "SALES_VIEW",
     "SALES_CREATE",
   ];

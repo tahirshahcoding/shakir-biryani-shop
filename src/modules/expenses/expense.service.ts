@@ -1,5 +1,7 @@
 import * as expenseRepo from "./expense.repository";
 import * as auditRepo from "@/modules/audit/audit.repository";
+import { db } from "@/lib/db/prisma";
+import { BadRequestError } from "@/lib/errors";
 
 export type ExpenseFilters = expenseRepo.ExpenseRepositoryFilters;
 
@@ -20,7 +22,7 @@ export async function createExpense(data: {
   createdById: string;
 }) {
   const category = await expenseRepo.findCategoryById(data.categoryId);
-  if (!category || !category.isActive) throw new Error("Invalid expense category");
+  if (!category || !category.isActive) throw new BadRequestError("Invalid expense category");
 
   const expense = await expenseRepo.create({
     categoryId: data.categoryId,
@@ -81,10 +83,11 @@ export async function getExpenseCategories() {
 }
 
 export async function createExpenseCategory(data: { name: string; description?: string; createdById: string }) {
-  const category = await expenseRepo.createCategory(data);
+  const { createdById, ...repoData } = data;
+  const category = await expenseRepo.createCategory(repoData);
 
   await auditRepo.create({
-    userId: data.createdById,
+    userId: createdById,
     action: "EXPENSE_CATEGORY_CREATED",
     entityType: "ExpenseCategory",
     entityId: category.id,
@@ -115,9 +118,7 @@ export async function getExpenseSummary(startDate?: string, endDate?: string) {
   ]);
 
   const categoryIds = byCategory.map((r) => r.categoryId);
-  const categories = await import("@/lib/db/prisma").then((m) =>
-    m.db.expenseCategory.findMany({ where: { id: { in: categoryIds } }, select: { id: true, name: true } })
-  );
+  const categories = await db.expenseCategory.findMany({ where: { id: { in: categoryIds } }, select: { id: true, name: true } });
   const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
   return {

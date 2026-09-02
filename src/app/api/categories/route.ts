@@ -4,7 +4,8 @@ import { createCategorySchema } from "@/lib/validation/schemas";
 import { getCategories, createCategory } from "@/modules/categories/category.service";
 
 export const GET = withErrorHandling(async () => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "CATEGORIES_VIEW");
   const categories = await getCategories();
   return NextResponse.json({ success: true, data: categories });
 });

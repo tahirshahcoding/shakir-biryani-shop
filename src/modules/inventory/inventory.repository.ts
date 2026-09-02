@@ -3,13 +3,39 @@ import { db } from "@/lib/db/prisma";
 export type InventoryRepositoryFilters = {
   search?: string;
   isLowStock?: boolean;
+  lowStockThreshold?: number;
   isActive?: boolean;
   page?: number;
   pageSize?: number;
 };
 
 export async function findMany(filters: InventoryRepositoryFilters = {}) {
-  const { search, isActive = true, isLowStock, page = 1, pageSize = 25 } = filters;
+  const { search, isActive = true, isLowStock, lowStockThreshold = 0, page = 1, pageSize = 25 } = filters;
+
+  if (isLowStock) {
+    const whereClauses = ['"isActive" = true', '"currentQuantity" <= GREATEST("minimumQuantity", $1::float8)'];
+    const params: unknown[] = [lowStockThreshold];
+    if (search) {
+      params.push(`%${search}%`);
+      whereClauses.push(`name ILIKE $${params.length}`);
+    }
+    const where = whereClauses.join(" AND ");
+    const offset = (page - 1) * pageSize;
+
+    const [items, countResult] = await Promise.all([
+      db.$queryRawUnsafe<{ id: string; name: string; unit: string; currentQuantity: number; minimumQuantity: number }[]>(
+        `SELECT id, name, unit, "currentQuantity", "minimumQuantity" FROM "InventoryItem" WHERE ${where} ORDER BY name ASC LIMIT ${pageSize} OFFSET ${offset}`,
+        ...params
+      ),
+      db.$queryRawUnsafe<{ cnt: bigint }[]>(
+        `SELECT COUNT(*) as cnt FROM "InventoryItem" WHERE ${where}`,
+        ...params
+      ),
+    ]);
+
+    const total = Number(countResult[0]?.cnt ?? 0);
+    return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+  }
 
   const where: Record<string, unknown> = {};
   if (isActive !== undefined) where.isActive = isActive;
@@ -25,11 +51,7 @@ export async function findMany(filters: InventoryRepositoryFilters = {}) {
     db.inventoryItem.count({ where }),
   ]);
 
-  const filtered = isLowStock
-    ? items.filter((item) => item.currentQuantity <= item.minimumQuantity)
-    : items;
-
-  return { items: filtered, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+  return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
 export async function findById(id: string) {
@@ -59,28 +81,6 @@ export async function findManyActive() {
     orderBy: { name: "asc" },
   });
 }
-
-// Transaction helpers for inventory operations
-export const txHelpers = {
-  findUnique: (tx: typeof db, id: string) =>
-    tx.inventoryItem.findUnique({ where: { id } }),
-
-  updateQuantity: (tx: typeof db, id: string, newQuantity: number) =>
-    tx.inventoryItem.update({ where: { id }, data: { currentQuantity: newQuantity } }),
-
-  createTransaction: (tx: typeof db, data: {
-    inventoryItemId: string;
-    type: string;
-    quantity: number;
-    previousQuantity: number;
-    newQuantity: number;
-    reason: string;
-    createdById: string;
-  }) => tx.inventoryTransaction.create({ data }),
-
-  findFirstByName: (tx: typeof db, name: string) =>
-    tx.inventoryItem.findFirst({ where: { name } }),
-};
 
 export async function findTransactions(
   inventoryItemId: string,

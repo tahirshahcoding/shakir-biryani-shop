@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError, ZodSchema } from "zod";
-import { AppError, ValidationError, UnauthorizedError, ForbiddenError } from "./index";
+import { AppError, ValidationError, UnauthorizedError, ForbiddenError, ConflictError } from "./index";
+import { getActiveSession } from "@/modules/auth/auth.service";
 
 export type ApiContext = { params: Promise<Record<string, string>> };
 export type ApiHandler = (request: NextRequest, context: ApiContext) => Promise<NextResponse>;
@@ -13,6 +14,18 @@ function zodErrorsToRecord(err: ZodError): Record<string, string[]> {
     record[path].push(issue.message);
   }
   return record;
+}
+
+function prismaErrorCode(error: unknown): string | null {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string") return code;
+  }
+  return null;
+}
+
+function isPrismaUniqueError(error: unknown): error is { code: string; meta?: { target?: string[] } } {
+  return prismaErrorCode(error) === "P2002";
 }
 
 export function handleApiError(error: unknown): NextResponse {
@@ -34,6 +47,28 @@ export function handleApiError(error: unknown): NextResponse {
     return NextResponse.json(
       { success: false, error: "Validation failed", errors: zodErrorsToRecord(error) },
       { status: 400 }
+    );
+  }
+
+  if (isPrismaUniqueError(error)) {
+    const fields = error.meta?.target?.join(", ") || "value";
+    return NextResponse.json(
+      { success: false, error: `${fields} already exists` },
+      { status: 409 }
+    );
+  }
+
+  if (prismaErrorCode(error) === "P2025") {
+    return NextResponse.json(
+      { success: false, error: "Record not found" },
+      { status: 404 }
+    );
+  }
+
+  if (prismaErrorCode(error) === "P2003") {
+    return NextResponse.json(
+      { success: false, error: "Cannot delete: record is referenced by other records" },
+      { status: 409 }
     );
   }
 
@@ -63,8 +98,7 @@ export function parseBody<T>(schema: ZodSchema<T>) {
 }
 
 export async function requireSession() {
-  const { getSession } = await import("@/modules/auth/auth.service");
-  const session = await getSession();
+  const session = await getActiveSession();
   if (!session) throw new UnauthorizedError();
   return session;
 }

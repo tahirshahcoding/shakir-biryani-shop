@@ -13,21 +13,21 @@ datasource db {
 // ============================================================
 
 model Role {
-  id          String         @id @default(uuid())
-  name        String         @unique
+  id          String           @id @default(uuid())
+  name        String           @unique
   description String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   users       User[]
   permissions RolePermission[]
 }
 
 model Permission {
-  id          String         @id @default(uuid())
-  code        String         @unique
+  id          String           @id @default(uuid())
+  code        String           @unique
   description String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   roles       RolePermission[]
 }
 
@@ -42,16 +42,16 @@ model RolePermission {
 }
 
 model User {
-  id           String    @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
-  email        String    @unique
+  email        String   @unique
   passwordHash String
   roleId       String
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  role                  Role                  @relation(fields: [roleId], references: [id])
+  role                  Role                   @relation(fields: [roleId], references: [id])
   createdSales          Sale[]
   createdExpenses       Expense[]
   inventoryTransactions InventoryTransaction[]
@@ -66,13 +66,13 @@ model User {
 // ============================================================
 
 model Category {
-  id          String    @id @default(uuid())
-  name        String    @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-  sortOrder   Int       @default(0)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   products Product[]
 
@@ -112,13 +112,13 @@ model Product {
 // Valid values: "CASH", "CARD", "ONLINE", "OTHER"
 
 model Sale {
-  id            String  @id @default(uuid())
-  invoiceNumber String  @unique
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique
   subtotal      Float
-  discount      Float   @default(0)
+  discount      Float    @default(0)
   total         Float
-  status        String  @default("COMPLETED")
-  paymentMethod String  @default("CASH")
+  status        String   @default("COMPLETED")
+  paymentMethod String   @default("CASH")
   createdById   String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -135,7 +135,7 @@ model Sale {
 }
 
 model SaleItem {
-  id          String  @id @default(uuid())
+  id          String   @id @default(uuid())
   saleId      String
   productId   String
   productName String
@@ -212,12 +212,12 @@ model InventoryTransaction {
 // ============================================================
 
 model ExpenseCategory {
-  id          String    @id @default(uuid())
-  name        String    @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   expenses Expense[]
 

@@ -9,6 +9,18 @@ export async function findMany() {
   return map;
 }
 
+export async function findValue(key: string) {
+  const setting = await db.setting.findUnique({ where: { key } });
+  return setting?.value ?? null;
+}
+
+export async function findNumber(key: string) {
+  const value = await findValue(key);
+  if (value === null || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
 export async function upsertMany(data: Record<string, string>) {
   const updates = Object.entries(data).map(([key, value]) =>
     db.setting.upsert({
@@ -17,6 +29,6 @@ export async function upsertMany(data: Record<string, string>) {
       create: { key, value },
     })
   );
-  await Promise.all(updates);
+  await db.$transaction(updates);
   return findMany();
 }

@@ -196,7 +196,7 @@ function ExpenseForm({ categories, initial, onSubmit, onClose }: {
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" aria-label="Amount" className="w-full px-3 py-2 border rounded-md text-sm" />
-          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" aria-label="Description" className="w-full px-3 py-2 border rounded-md text-sm" />
+          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" aria-label="Description" className="w-full px-3 py-2 border rounded-md text-sm" />
           <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} aria-label="Payment method" className="w-full px-3 py-2 border rounded-md text-sm">
             <option value="CASH">Cash</option><option value="CARD">Card</option><option value="ONLINE">Online</option><option value="OTHER">Other</option>
           </select>

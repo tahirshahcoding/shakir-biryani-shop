@@ -1,38 +1,13 @@
 import { db } from "@/lib/db/prisma";
 import * as inventoryRepo from "./inventory.repository";
 import * as auditRepo from "@/modules/audit/audit.repository";
+import { NotFoundError } from "@/lib/errors";
 
 export type InventoryFilters = inventoryRepo.InventoryRepositoryFilters;
 
 export async function getInventoryItems(filters: InventoryFilters = {}) {
-  const { search, isLowStock, isActive, page = 1, pageSize = 25 } = filters;
-
-  if (isLowStock) {
-    const whereClauses = ['"isActive" = true', '"currentQuantity" <= "minimumQuantity"'];
-    const params: unknown[] = [];
-    if (search) {
-      params.push(`%${search}%`);
-      whereClauses.push(`name ILIKE $${params.length}`);
-    }
-    const where = whereClauses.join(" AND ");
-    const offset = (page - 1) * pageSize;
-
-    const [items, countResult] = await Promise.all([
-      db.$queryRawUnsafe<{ id: string; name: string; unit: string; currentQuantity: number; minimumQuantity: number }[]>(
-        `SELECT id, name, unit, "currentQuantity", "minimumQuantity" FROM "InventoryItem" WHERE ${where} ORDER BY name ASC LIMIT ${pageSize} OFFSET ${offset}`,
-        ...params
-      ),
-      db.$queryRawUnsafe<{ cnt: bigint }[]>(
-        `SELECT COUNT(*) as cnt FROM "InventoryItem" WHERE ${where}`,
-        ...params
-      ),
-    ]);
-
-    const total = Number(countResult[0]?.cnt ?? 0);
-    return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
-  }
-
-  return inventoryRepo.findMany({ search, isActive, page, pageSize });
+  const { search, isLowStock, lowStockThreshold, isActive, page, pageSize } = filters;
+  return inventoryRepo.findMany({ search, isLowStock, lowStockThreshold, isActive, page, pageSize });
 }
 
 export async function getInventoryItemById(id: string) {
@@ -46,10 +21,11 @@ export async function createInventoryItem(data: {
   minimumQuantity?: number;
   createdById: string;
 }) {
-  const item = await inventoryRepo.create(data);
+  const { createdById, ...repoData } = data;
+  const item = await inventoryRepo.create(repoData);
 
   await auditRepo.create({
-    userId: data.createdById,
+    userId: createdById,
     action: "INVENTORY_ITEM_CREATED",
     entityType: "InventoryItem",
     entityId: item.id,
@@ -87,14 +63,15 @@ export async function addStock(
 ) {
   return db.$transaction(async (tx) => {
     const item = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
-    if (!item) throw new Error("Inventory item not found");
+    if (!item) throw new NotFoundError("Inventory item");
 
-    const previousQuantity = Number(item.currentQuantity);
-    const newQuantity = previousQuantity + quantity;
+    const updated = await tx.inventoryItem.update({
+      where: { id: inventoryItemId },
+      data: { currentQuantity: { increment: quantity } },
+    });
 
-    await tx.$executeRaw`
-      UPDATE "InventoryItem" SET "currentQuantity" = ${newQuantity} WHERE id = ${inventoryItemId}
-    `;
+    const newQuantity = Number(updated.currentQuantity);
+    const previousQuantity = newQuantity - quantity;
 
     const transaction = await tx.inventoryTransaction.create({
       data: { inventoryItemId, type: "STOCK_IN", quantity, previousQuantity, newQuantity, reason, createdById },
@@ -104,7 +81,7 @@ export async function addStock(
       data: { userId: createdById, action: "STOCK_ADDED", entityType: "InventoryItem", entityId: inventoryItemId, metadata: JSON.stringify({ quantity, newQuantity, reason }) },
     });
 
-    return { item: { ...item, currentQuantity: newQuantity }, transaction };
+    return { item: updated, transaction };
   });
 }
 
@@ -116,14 +93,14 @@ export async function adjustStock(
 ) {
   return db.$transaction(async (tx) => {
     const item = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
-    if (!item) throw new Error("Inventory item not found");
+    if (!item) throw new NotFoundError("Inventory item");
 
     const previousQuantity = Number(item.currentQuantity);
     const delta = newQuantity - previousQuantity;
-
-    await tx.$executeRaw`
-      UPDATE "InventoryItem" SET "currentQuantity" = ${newQuantity} WHERE id = ${inventoryItemId}
-    `;
+    const adjusted = await tx.inventoryItem.update({
+      where: { id: inventoryItemId },
+      data: { currentQuantity: newQuantity },
+    });
 
     const transaction = await tx.inventoryTransaction.create({
       data: { inventoryItemId, type: "ADJUSTMENT", quantity: delta, previousQuantity, newQuantity, reason, createdById },
@@ -133,27 +110,7 @@ export async function adjustStock(
       data: { userId: createdById, action: "STOCK_ADJUSTED", entityType: "InventoryItem", entityId: inventoryItemId, metadata: JSON.stringify({ delta, newQuantity, reason }) },
     });
 
-    return { item: { ...item, currentQuantity: newQuantity }, transaction };
-  });
-}
-
-export async function restoreStock(
-  tx: { inventoryItem: { findUnique: (args: { where: { id: string } }) => Promise<{ id: string; currentQuantity: number } | null>; update: (args: { where: { id: string }; data: { currentQuantity: number } }) => Promise<unknown> }; inventoryTransaction: { create: (args: unknown) => Promise<unknown> } },
-  inventoryItemId: string,
-  quantity: number,
-  reason: string,
-  createdById: string
-) {
-  const item = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
-  if (!item) return;
-
-  const previousQuantity = item.currentQuantity;
-  const newQuantity = previousQuantity + quantity;
-
-  await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentQuantity: newQuantity } });
-
-  await tx.inventoryTransaction.create({
-    data: { inventoryItemId, type: "RESTOCK", quantity, previousQuantity, newQuantity, reason, createdById },
+    return { item: adjusted, transaction };
   });
 }
 

@@ -80,6 +80,13 @@ export async function getExpenseReport(filters: ReportFilters = {}) {
 export async function getInventoryReport() {
   const items = await db.inventoryItem.findMany({
     where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      unit: true,
+      currentQuantity: true,
+      minimumQuantity: true,
+    },
     orderBy: { name: "asc" },
   });
 
@@ -116,29 +123,32 @@ export async function getProductReport(filters: ReportFilters = {}) {
     if (endDate) (where.createdAt as Record<string, unknown>).lte = new Date(endDate + "T23:59:59.999Z");
   }
 
-  const saleItems = await db.saleItem.findMany({
+  const rows = await db.saleItem.groupBy({
+    by: ["productId", "productName"],
     where: { sale: where as never },
-    include: { product: { select: { id: true, name: true, costPrice: true } } },
+    _sum: { quantity: true, subtotal: true },
   });
 
-  const productMap = new Map<string, { name: string; totalQuantity: number; totalRevenue: number; totalCost: number }>();
+  const productIds = rows.map((r) => r.productId);
+  const products = await db.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, costPrice: true },
+  });
+  const costMap = new Map(products.map((p) => [p.id, Number(p.costPrice) || 0]));
 
-  for (const item of saleItems) {
-    const key = item.productId;
-    const existing = productMap.get(key) || { name: item.productName, totalQuantity: 0, totalRevenue: 0, totalCost: 0 };
-    existing.totalQuantity += item.quantity;
-    existing.totalRevenue += Number(item.subtotal);
-    existing.totalCost += (Number(item.product.costPrice) || 0) * item.quantity;
-    productMap.set(key, existing);
-  }
-
-  const products = Array.from(productMap.entries()).map(([productId, data]) => ({
-    productId,
-    ...data,
-    profit: data.totalRevenue - data.totalCost,
-  }));
-
-  products.sort((a, b) => b.totalRevenue - a.totalRevenue);
-
-  return products;
+  return rows
+    .map((r) => {
+      const totalQuantity = r._sum.quantity || 0;
+      const totalRevenue = Number(r._sum.subtotal) || 0;
+      const totalCost = (costMap.get(r.productId) || 0) * totalQuantity;
+      return {
+        productId: r.productId,
+        name: r.productName,
+        totalQuantity,
+        totalRevenue,
+        totalCost,
+        profit: totalRevenue - totalCost,
+      };
+    })
+    .sort((a, b) => b.totalRevenue - a.totalRevenue);
 }

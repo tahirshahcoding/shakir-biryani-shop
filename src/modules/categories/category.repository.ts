@@ -24,6 +24,10 @@ export async function create(data: { name: string; description?: string; sortOrd
   return db.category.create({ data });
 }
 
+export async function findByName(name: string) {
+  return db.category.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+}
+
 export async function update(
   id: string,
   data: Partial<{ name: string; description: string; sortOrder: number; isActive: boolean }>

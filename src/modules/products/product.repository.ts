@@ -51,6 +51,7 @@ export async function findById(id: string) {
 export async function findManyByIds(ids: string[]) {
   return db.product.findMany({
     where: { id: { in: ids }, isActive: true, isAvailable: true },
+    select: { id: true, name: true, sellingPrice: true, costPrice: true },
   });
 }
 
@@ -96,10 +97,6 @@ export async function update(
     data,
     include: { category: { select: { id: true, name: true } } },
   });
-}
-
-export async function countActive() {
-  return db.product.count({ where: { isActive: true } });
 }
 
 export async function remove(id: string) {

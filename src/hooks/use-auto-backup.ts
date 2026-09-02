@@ -8,11 +8,6 @@ function getTodayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function isPastMidnight(): boolean {
-  const now = new Date();
-  return now.getHours() === 0 && now.getMinutes() === 0;
-}
-
 function getLastBackupDate(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(LAST_BACKUP_KEY);
@@ -29,7 +24,7 @@ async function downloadBackup(): Promise<boolean> {
     const blob = await res.blob();
     const disposition = res.headers.get("Content-Disposition") || "";
     const match = disposition.match(/filename="(.+)"/);
-    const filename = match ? match[1] : "biryani-backup.db";
+    const filename = match ? match[1] : "biryani-backup.json";
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

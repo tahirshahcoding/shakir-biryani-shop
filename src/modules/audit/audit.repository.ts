@@ -40,7 +40,14 @@ export async function findMany(filters: {
   const [items, total] = await Promise.all([
     db.auditLog.findMany({
       where,
-      include: { user: { select: { id: true, name: true, email: true } } },
+      select: {
+        id: true,
+        action: true,
+        entityType: true,
+        entityId: true,
+        createdAt: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,

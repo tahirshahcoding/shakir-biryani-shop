@@ -5,7 +5,8 @@ import { getInventoryItemById, updateInventoryItem, deleteInventoryItem } from "
 import { NotFoundError } from "@/lib/errors";
 
 export const GET = withErrorHandling(async (_request: NextRequest, { params }: ApiContext) => {
-  await requireSession();
+  const session = await requireSession();
+  requirePermission(session, "INVENTORY_VIEW");
   const { id } = await params;
   const item = await getInventoryItemById(id);
   if (!item) throw new NotFoundError("Inventory item");

@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandling, requireSession, requirePermission } from "@/lib/errors/api-handler";
-import { writeFile, rename, copyFile } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
-
-const DB_PATH = join(process.cwd(), "prisma", "dev.db");
-const DB_WAL = join(process.cwd(), "prisma", "dev.db-wal");
-const DB_SHM = join(process.cwd(), "prisma", "dev.db-shm");
-const DB_BACKUP = join(process.cwd(), "prisma", "dev.db.bak");
+import { restoreBackup, validateBackup } from "@/modules/backup/backup.service";
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   const session = await requireSession();
@@ -20,31 +13,27 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
   }
 
-  if (!file.name.endsWith(".db")) {
-    return NextResponse.json({ success: false, error: "Invalid file type. Expected .db file" }, { status: 400 });
+  if (!file.name.endsWith(".json")) {
+    return NextResponse.json({ success: false, error: "Invalid file type. Expected a .json backup file" }, { status: 400 });
   }
 
-  // Backup current database before restoring
-  if (existsSync(DB_PATH)) {
-    await copyFile(DB_PATH, DB_BACKUP);
-  }
-
-  // Write the uploaded file
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  // Remove WAL/SHM files if they exist (they'll be stale after restore)
+  let backup: unknown;
   try {
-    if (existsSync(DB_WAL)) await writeFile(DB_WAL, Buffer.alloc(0));
-    if (existsSync(DB_SHM)) await writeFile(DB_SHM, Buffer.alloc(0));
+    backup = JSON.parse(await file.text());
   } catch {
-    // Ignore cleanup errors
+    return NextResponse.json({ success: false, error: "Invalid backup file. Could not parse JSON" }, { status: 400 });
   }
 
-  await writeFile(DB_PATH, buffer);
+  if (!validateBackup(backup)) {
+    return NextResponse.json({ success: false, error: "Invalid backup file. Structure is not recognized" }, { status: 400 });
+  }
+
+  const exportedAt = new Date(backup.exportedAt).toISOString();
+
+  await restoreBackup(backup);
 
   return NextResponse.json({
     success: true,
-    message: "Database restored successfully. Please restart the application.",
+    message: `Database restored successfully from backup (${exportedAt}). Please log in again.`,
   });
 });

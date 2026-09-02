@@ -96,33 +96,23 @@ export async function update(
   });
 }
 
-export async function remove(id: string) {
-  return db.user.delete({ where: { id } });
-}
-
-// For auth
-export async function findByEmailWithRole(email: string) {
-  return db.user.findUnique({
-    where: { email },
+export async function deactivate(id: string) {
+  return db.user.update({
+    where: { id },
+    data: { isActive: false },
     select: {
       id: true,
       name: true,
       email: true,
-      passwordHash: true,
       isActive: true,
-      role: {
-        select: {
-          id: true,
-          name: true,
-          permissions: {
-            select: {
-              permission: { select: { code: true } },
-            },
-          },
-        },
-      },
+      createdAt: true,
+      role: { select: { id: true, name: true } },
     },
   });
+}
+
+export async function countActive() {
+  return db.user.count({ where: { isActive: true } });
 }
 
 export async function findRoles() {

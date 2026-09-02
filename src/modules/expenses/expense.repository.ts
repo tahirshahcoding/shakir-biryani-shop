@@ -22,7 +22,17 @@ export async function findMany(filters: ExpenseRepositoryFilters = {}) {
   const [items, total] = await Promise.all([
     db.expense.findMany({
       where,
-      include: { category: { select: { id: true, name: true } }, createdBy: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        categoryId: true,
+        amount: true,
+        description: true,
+        paymentMethod: true,
+        expenseDate: true,
+        createdAt: true,
+        category: { select: { id: true, name: true } },
+        createdBy: { select: { id: true, name: true } },
+      },
       orderBy: { expenseDate: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAutoBackup } from "@/hooks/use-auto-backup";
 
 const navItems = [
@@ -15,6 +16,7 @@ const navItems = [
   { label: "Reports", href: "/reports", icon: "chart" },
   { label: "Users", href: "/users", icon: "people" },
   { label: "Settings", href: "/settings", icon: "settings" },
+  { label: "Audit", href: "/audit", icon: "audit" },
 ];
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -70,11 +72,33 @@ const iconMap: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
+  audit: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((res) => {
+        if (res.status === 401) {
+          fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+            router.push("/login");
+            router.refresh();
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSessionChecked(true));
+  }, [router]);
+
+  if (!sessionChecked) return null;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });

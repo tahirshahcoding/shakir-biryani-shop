@@ -47,6 +47,23 @@ export async function getSession(): Promise<SessionPayload | null> {
   return verifySessionToken(token);
 }
 
+export async function getActiveSession(): Promise<SessionPayload | null> {
+  const session = await getSession();
+  if (!session) return null;
+
+  // Validate the user still exists and is active without re-fetching the full
+  // role/permissions graph (already embedded in the JWT). Role or permission
+  // changes take effect on the user's next login.
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { isActive: true },
+  });
+
+  if (!user || !user.isActive) return null;
+
+  return session;
+}
+
 export async function loginUser(email: string, password: string) {
   const user = await db.user.findUnique({
     where: { email },

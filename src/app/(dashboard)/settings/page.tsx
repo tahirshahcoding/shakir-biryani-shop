@@ -61,7 +61,7 @@ export default function SettingsPage() {
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="(.+)"/);
-      const filename = match ? match[1] : "biryani-backup.db";
+      const filename = match ? match[1] : "biryani-backup.json";
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
@@ -78,7 +78,7 @@ export default function SettingsPage() {
       formData.append("backup", file);
       const res = await fetch("/api/backup/restore", { method: "POST", body: formData });
       const data = await res.json();
-      if (res.ok) { toast("Database restored! Please refresh the page."); }
+      if (res.ok) { toast("Database restored! Please log in again."); }
       else { toast(data.error || "Restore failed", "error"); }
     } catch { toast("Restore failed", "error"); }
     setRestoreLoading(false);
@@ -189,12 +189,12 @@ export default function SettingsPage() {
           <button onClick={handleBackup} disabled={backupLoading} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors">
             {backupLoading ? "Backing up..." : "Download Backup"}
           </button>
-          <input ref={fileInputRef} type="file" accept=".db" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRestore(f); e.target.value = ""; }} />
+          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRestore(f); e.target.value = ""; }} />
           <button onClick={() => fileInputRef.current?.click()} disabled={restoreLoading} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors">
             {restoreLoading ? "Restoring..." : "Restore from Backup"}
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">Download creates a copy of the database. Restore replaces current data (a safety backup is saved first).</p>
+        <p className="text-xs text-gray-500 mt-2">Download creates a JSON copy of your data. Restore replaces current data (users must log in again after restoring).</p>
       </div>
 
       {/* Change Password */}
