@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useAutoBackup } from "@/hooks/use-auto-backup";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: "grid" },
@@ -82,23 +80,6 @@ const iconMap: Record<string, React.ReactNode> = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [sessionChecked, setSessionChecked] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/auth/me", { cache: "no-store" })
-      .then((res) => {
-        if (res.status === 401) {
-          fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-            router.push("/login");
-            router.refresh();
-          });
-        }
-      })
-      .catch(() => {})
-      .finally(() => setSessionChecked(true));
-  }, [router]);
-
-  if (!sessionChecked) return null;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });

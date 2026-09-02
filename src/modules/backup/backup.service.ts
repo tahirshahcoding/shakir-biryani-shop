@@ -28,12 +28,27 @@ const TABLE_ORDER = [
 
 type ModelKey = (typeof TABLE_ORDER)[number];
 
+// Large, ever-growing tables are capped to keep backups fast. The newest
+// rows are always included; older rows are pruned.
+const ROW_CAPS: Partial<Record<ModelKey, number>> = {
+  auditLog: 5000,
+  saleItem: 20000,
+  inventoryTransaction: 20000,
+  expense: 10000,
+};
+
 export async function createBackup(): Promise<BackupData> {
   const tables: Record<string, unknown[]> = {};
-  for (const model of TABLE_ORDER) {
-    const delegate = (db as unknown as Record<ModelKey, { findMany: () => Promise<unknown[]> }>)[model];
-    tables[model] = await delegate.findMany();
-  }
+  await Promise.all(
+    TABLE_ORDER.map(async (model) => {
+      const cap = ROW_CAPS[model];
+      const delegate = (db as unknown as Record<ModelKey, { findMany: (args: unknown) => Promise<unknown[]> }>)[model];
+      const args = cap
+        ? { orderBy: { createdAt: "desc" as const }, take: cap }
+        : undefined;
+      tables[model] = await delegate.findMany(args);
+    })
+  );
   return { version: 1, exportedAt: new Date().toISOString(), tables };
 }
 

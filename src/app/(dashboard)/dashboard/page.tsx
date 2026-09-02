@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
+import { useApi } from "@/hooks/use-api";
 import { formatCurrency } from "@/lib/format";
 import { 
   TrendingUp, 
@@ -53,27 +54,12 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const lastDateRef = useRef(new Date().toISOString().slice(0, 10));
 
-  const load = useCallback(() => {
-    setError(null);
-    fetch("/api/dashboard", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success) setData(res.data);
-        else setError(res.error || "Failed to load dashboard");
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load dashboard");
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const { data, error, isLoading, mutate } = useApi<DashboardData>("/api/dashboard", {
+    dedupingInterval: 5000,
+    keepPreviousData: true,
+  });
 
   // Re-fetch when the day changes at midnight
   useEffect(() => {
@@ -81,22 +67,22 @@ export default function DashboardPage() {
       const today = new Date().toISOString().slice(0, 10);
       if (today !== lastDateRef.current) {
         lastDateRef.current = today;
-        load();
+        mutate();
       }
     }, 30_000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [mutate]);
 
-  if (loading) return <DashboardSkeleton />;
+  if (isLoading && !data) return <DashboardSkeleton />;
 
-  if (error) return (
+  if (error && !data) return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Dashboard</h1>
       <div className="bg-red-50 border border-red-200 rounded-xl p-8 flex flex-col items-center justify-center text-center">
         <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
         <h2 className="text-lg font-semibold text-red-900 mb-2">Something went wrong</h2>
-        <p className="text-red-600 mb-6 max-w-md">{error}</p>
-        <button onClick={load} className="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
+        <p className="text-red-600 mb-6 max-w-md">{error instanceof Error ? error.message : "Failed to load dashboard"}</p>
+        <button onClick={() => mutate()} className="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
           Try Again
         </button>
       </div>
@@ -107,12 +93,12 @@ export default function DashboardPage() {
     <div className="pb-8">
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Here's what's happening at your shop today.</p>
+        <p className="text-sm text-gray-500 mt-1">Here is what is happening at your shop today.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard 
-          label="Today's Orders" 
+          label="Todays Orders" 
           value={data?.todaySales || 0} 
           icon={<ShoppingCart className="h-6 w-6 text-blue-600" />}
           iconBg="bg-blue-100"

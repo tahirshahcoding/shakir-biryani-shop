@@ -3,7 +3,6 @@ import { withErrorHandling, requireSession, requirePermission } from "@/lib/erro
 import { createProductSchema } from "@/lib/validation/schemas";
 import { getProducts, createProduct } from "@/modules/products/product.service";
 import { db } from "@/lib/db/prisma";
-import { ZodError } from "zod";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   const session = await requireSession();
@@ -21,6 +20,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         category: { select: { id: true, name: true } },
       },
       orderBy: { name: "asc" },
+      take: 500,
     });
     return NextResponse.json({ success: true, data: items });
   }

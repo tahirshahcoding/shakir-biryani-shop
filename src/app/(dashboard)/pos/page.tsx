@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useApi } from "@/hooks/use-api";
 import { useToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/format";
 
@@ -29,37 +30,30 @@ type CompletedSale = {
 
 export default function POSPage() {
   const { toast } = useToast();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const load = () => {
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      fetch("/api/products?all=true").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
-    ]).then(([productsRes, categoriesRes]) => {
-      setProducts(productsRes.data || []);
-      setCategories(categoriesRes.data || []);
-      setLoading(false);
-    }).catch(() => {
-      setError("Failed to load products");
-      setLoading(false);
-    });
-  };
+  const { data: productData, error: productError, isLoading: productsLoading, mutate: mutateProducts } =
+    useApi<Product[]>("/api/products?all=true", { dedupingInterval: 5000, keepPreviousData: true });
+  const { data: categoryData, isLoading: categoriesLoading } =
+    useApi<{ id: string; name: string }[]>("/api/categories", { dedupingInterval: 5000 });
 
-  useEffect(() => { load(); }, []);
+  const products = useMemo(() => productData || [], [productData]);
+  const categories = useMemo(() => categoryData || [], [categoryData]);
+  const loading = productsLoading && categoriesLoading;
+  const error = productError?.message || null;
+
+  // After a completed sale, refresh products so stock/qty changes are reflected
+  useEffect(() => {
+    if (completedSale) mutateProducts();
+  }, [completedSale, mutateProducts]);
 
   const filtered = useMemo(() => products.filter((p) => {
     if (selectedCategory && p.category.id !== selectedCategory) return false;
@@ -190,7 +184,7 @@ export default function POSPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-red-500 text-sm mb-3">{error}</p>
-          <button onClick={load} className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
+          <button onClick={() => mutateProducts()} className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
             Retry
           </button>
         </div>

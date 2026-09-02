@@ -45,6 +45,8 @@ export async function createSale(data: {
     return acc;
   }, new Map());
 
+  const invoiceNumber = await generateInvoiceNumber();
+
   return db.$transaction(async (tx) => {
     let subtotal = 0;
     const saleItems = [...mergeItems.entries()].map(([productId, quantity]) => {
@@ -64,7 +66,6 @@ export async function createSale(data: {
 
     const discount = roundCurrency(Math.max(0, data.discount || 0));
     const total = roundCurrency(Math.max(0, subtotal - discount));
-    const invoiceNumber = await generateInvoiceNumber();
 
     const sale = await tx.sale.create({
       data: {
